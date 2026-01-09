@@ -7,7 +7,7 @@ use defmt::{debug, info, panic};
 use defmt_rtt as _;
 use embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice;
 use embassy_executor::Spawner;
-use embassy_nrf::{Peri, bind_interrupts, gpio::{AnyPin, Input, Level, Output, OutputDrive, Pull}, interrupt::Priority, peripherals, spim::{self, Spim}, spis};
+use embassy_nrf::{bind_interrupts, gpio::{AnyPin, Level, Output, OutputDrive}, interrupt::Priority, peripherals, spim::{self, Spim}, spis};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, blocking_mutex::Mutex as BlockingMutex};
 use embassy_time::{Delay, Duration, Timer};
 use embedded_graphics::{pixelcolor::Rgb565, prelude::{Point, Size, *}, primitives::Rectangle};
@@ -18,8 +18,11 @@ use panic_probe as _;
 use static_cell::StaticCell;
 use u8g2_fonts::{U8g2TextStyle, fonts};
 
+mod button;
+mod display;
 mod watchdog;
 
+static DISPLAY_BUFFER: StaticCell<[u8; 512]> = StaticCell::new();
 static SPI_BUS: StaticCell<BlockingMutex<NoopRawMutex, RefCell<Spim<'static>>>> = StaticCell::new();
 
 #[embassy_executor::main]
@@ -45,6 +48,7 @@ async fn main(spawner: Spawner) {
         // RTC0 => mpsl::HighPrioInterruptHandler;
     });
 
+    info!("Initializing Embassy");
     let mut config = embassy_nrf::config::Config::default();
     config.lfclk_source = embassy_nrf::config::LfclkSource::InternalRC;
     config.gpiote_interrupt_priority = Priority::P2;
@@ -55,8 +59,7 @@ async fn main(spawner: Spawner) {
     spawner.spawn(watchdog::watchdog_task()).unwrap();
 
     info!("Spawning button task");
-    let _button_enable = Output::new(p.P0_15, Level::High, OutputDrive::Standard);
-    spawner.spawn(button_task(p.P0_13.into::<AnyPin>())).unwrap();
+    spawner.spawn(button::button_task(p.P0_13.into::<AnyPin>(), p.P0_15.into::<AnyPin>())).unwrap();
 
     info!("Initializing spi bus");
     let mut spim_config = spim::Config::default();
@@ -74,8 +77,8 @@ async fn main(spawner: Spawner) {
     let display_spi = SpiDevice::new(spi_bus, display_cs);
 
     let data_clock = Output::new(p.P0_18, Level::Low, OutputDrive::Standard);
-    let mut buffer = [0_u8; 256];
-    let display_spi_interface = SpiInterface::new(display_spi, data_clock, &mut buffer);
+    let buffer = DISPLAY_BUFFER.init([0_u8; 512]);
+    let display_spi_interface = SpiInterface::new(display_spi, data_clock, &mut *buffer);
 
     let mut display = mipidsi::Builder::new(mipidsi::models::ST7789, display_spi_interface)
         .display_size(240, 240)
@@ -87,63 +90,11 @@ async fn main(spawner: Spawner) {
 
     info!("Clearing display");
     display.clear(Rgb565::BLACK).unwrap();
-  
+
+    info!("Spawning display task");
+    spawner.spawn(display::display_task(display)).unwrap();
+
     loop {
-        debug!("Updating display");
-        let display_area = Rectangle::new(Point::zero(), display.size());
-
-        let title = TextBox::new(
-            "Patina",
-            Rectangle::new(Point::zero(), Size::new(90, 12)),
-            U8g2TextStyle::new(fonts::u8g2_font_6x10_tr, Rgb565::WHITE)
-        );
-        let feature = TextBox::new(
-            "MCUBoot",
-            Rectangle::new(Point::zero(), Size::new(90, 12)),
-            U8g2TextStyle::new(fonts::u8g2_font_6x10_tr, Rgb565::WHITE)
-        );
-        const DIGIT_HEIGHT: u32 = 120;
-        const DIGIT_WIDTH: u32 = 45;
-        const DIGIT_SPACING: u32 = 15;
-        const SEGMENT_WIDTH: u32 = 10;
-        let total_width = 5 * DIGIT_WIDTH + 5 * DIGIT_SPACING;
-        let clock = TextBox::new(
-            "10:58",
-            Rectangle::new(Point::zero(), Size::new(total_width, DIGIT_HEIGHT + DIGIT_SPACING)),
-            eg_seven_segment::SevenSegmentStyleBuilder::new()
-                .digit_size(Size::new(DIGIT_WIDTH, DIGIT_HEIGHT))
-                .digit_spacing(DIGIT_SPACING)
-                .segment_width(SEGMENT_WIDTH)
-                .segment_color(Rgb565::GREEN)
-                .build()
-        );
-        
-        let header = LinearLayout::horizontal(
-            Chain::new(title)
-                .append(feature)
-        )
-            .with_alignment(vertical::Top)
-            .arrange();
-
-        let positioned_header = header.align_to(&display_area, horizontal::Center, vertical::Top);
-        let positioned_clock = clock.align_to(&display_area, horizontal::Center, vertical::Center)
-            .translate(Point::new(10, 0));
-
-        positioned_header.draw(&mut display).unwrap();
-        positioned_clock.draw(&mut display).unwrap();
-
         Timer::after(Duration::from_secs(1)).await;
-    }
-}
-
-#[embassy_executor::task]
-async fn button_task(pin: Peri<'static, AnyPin>) {
-    let mut button = Input::new(pin, Pull::None);
-    loop {
-        button.wait_for_high().await;
-        Timer::after_millis(200).await;
-        button.wait_for_low().await;
-        info!("Button pressed, Rebooting PineTime");
-        cortex_m::peripheral::SCB::sys_reset();
     }
 }

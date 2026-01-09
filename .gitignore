@@ -1,0 +1,7 @@
+/.venv
+/target
+/scripts/imgtool
+/scripts/imgtool.py
+patina.bin
+patina-image.bin
+patina-dfu.zip

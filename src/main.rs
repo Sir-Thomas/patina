@@ -22,13 +22,13 @@ static SPI_BUS: StaticCell<BlockingMutex<NoopRawMutex, RefCell<Spim<'static>>>> 
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    info!("Updating vector table offset");
-    let mut p = cortex_m::Peripherals::take().unwrap();
-
-    unsafe {
-        p.SCB.invalidate_icache();
-        p.SCB.vtor.write(0x8100);
-    }
+    // MCUboot only - comment out this block for running on baremetal
+    // info!("Updating vector table offset");
+    // let mut p = cortex_m::Peripherals::take().unwrap();
+    // unsafe {
+    //     p.SCB.invalidate_icache();
+    //     p.SCB.vtor.write(0x8100);
+    // }
 
     info!("Binding interrupts");
     bind_interrupts!(struct Irqs {
@@ -106,7 +106,7 @@ async fn main(spawner: Spawner) {
         const SEGMENT_WIDTH: u32 = 10;
         let total_width = 5 * DIGIT_WIDTH + 5 * DIGIT_SPACING;
         let clock = TextBox::new(
-            "12:00",
+            "10:58",
             Rectangle::new(Point::zero(), Size::new(total_width, DIGIT_HEIGHT + DIGIT_SPACING)),
             eg_seven_segment::SevenSegmentStyleBuilder::new()
                 .digit_size(Size::new(DIGIT_WIDTH, DIGIT_HEIGHT))

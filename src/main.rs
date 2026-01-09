@@ -18,6 +18,8 @@ use panic_probe as _;
 use static_cell::StaticCell;
 use u8g2_fonts::{U8g2TextStyle, fonts};
 
+mod watchdog;
+
 static SPI_BUS: StaticCell<BlockingMutex<NoopRawMutex, RefCell<Spim<'static>>>> = StaticCell::new();
 
 #[embassy_executor::main]
@@ -50,7 +52,7 @@ async fn main(spawner: Spawner) {
     let p = embassy_nrf::init(config);
 
     info!("Spawning watchdog task");
-    spawner.spawn(watchdog_task()).unwrap();
+    spawner.spawn(watchdog::watchdog_task()).unwrap();
 
     info!("Spawning button task");
     let _button_enable = Output::new(p.P0_15, Level::High, OutputDrive::Standard);
@@ -131,16 +133,6 @@ async fn main(spawner: Spawner) {
         positioned_clock.draw(&mut display).unwrap();
 
         Timer::after(Duration::from_secs(1)).await;
-    }
-}
-
-#[embassy_executor::task]
-async fn watchdog_task() {
-    let mut handle = unsafe { embassy_nrf::wdt::WatchdogHandle::steal::<embassy_nrf::peripherals::WDT>(0) };
-    loop {
-        debug!("Petting watchdog");
-        handle.pet();
-        Timer::after(Duration::from_secs(4)).await;
     }
 }
 

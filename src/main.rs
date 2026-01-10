@@ -3,27 +3,37 @@
 
 use core::cell::RefCell;
 
-use defmt::{debug, info, panic};
+use defmt::info;
 use defmt_rtt as _;
 use embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice;
 use embassy_executor::Spawner;
-use embassy_nrf::{bind_interrupts, gpio::{AnyPin, Level, Output, OutputDrive}, interrupt::Priority, peripherals, spim::{self, Spim}, spis};
+use embassy_nrf::{bind_interrupts, gpio::{AnyPin, Level, Output, OutputDrive}, interrupt::Priority, peripherals, spim::{self, Spim}, spis, twim};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, blocking_mutex::Mutex as BlockingMutex};
 use embassy_time::{Delay, Duration, Timer};
-use embedded_graphics::{pixelcolor::Rgb565, prelude::{Point, Size, *}, primitives::Rectangle};
-use embedded_layout::{align::{Align, horizontal, vertical}, layout::linear::LinearLayout, prelude::Chain};
-use embedded_text::TextBox;
+use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
 use mipidsi::{interface::SpiInterface, options::{Orientation, Rotation}};
 use panic_probe as _;
 use static_cell::StaticCell;
-use u8g2_fonts::{U8g2TextStyle, fonts};
 
 mod button;
 mod display;
+mod touchscreen;
 mod watchdog;
 
 static DISPLAY_BUFFER: StaticCell<[u8; 512]> = StaticCell::new();
 static SPI_BUS: StaticCell<BlockingMutex<NoopRawMutex, RefCell<Spim<'static>>>> = StaticCell::new();
+
+bind_interrupts!(struct Irqs {
+    TWISPI0 => spim::InterruptHandler<peripherals::TWISPI0>;
+    TWISPI1 => twim::InterruptHandler<peripherals::TWISPI1>;
+    // SAADC => saadc::InterruptHandler;
+    // RNG => rng::InterruptHandler<RNG>;
+    // EGU0_SWI0 => mpsl::LowPrioInterruptHandler;
+    // CLOCK_POWER => mpsl::ClockInterruptHandler;
+    // RADIO => mpsl::HighPrioInterruptHandler;
+    // TIMER0 => mpsl::HighPrioInterruptHandler;
+    // RTC0 => mpsl::HighPrioInterruptHandler;
+});
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -34,19 +44,6 @@ async fn main(spawner: Spawner) {
     //     p.SCB.invalidate_icache();
     //     p.SCB.vtor.write(0x8100);
     // }
-
-    info!("Binding interrupts");
-    bind_interrupts!(struct Irqs {
-        TWISPI0 => spim::InterruptHandler<peripherals::TWISPI0>;
-        // TWISPI1 => twim::InterruptHandler<peripherals::TWISPI1>;
-        // SAADC => saadc::InterruptHandler;
-        // RNG => rng::InterruptHandler<RNG>;
-        // EGU0_SWI0 => mpsl::LowPrioInterruptHandler;
-        // CLOCK_POWER => mpsl::ClockInterruptHandler;
-        // RADIO => mpsl::HighPrioInterruptHandler;
-        // TIMER0 => mpsl::HighPrioInterruptHandler;
-        // RTC0 => mpsl::HighPrioInterruptHandler;
-    });
 
     info!("Initializing Embassy");
     let mut config = embassy_nrf::config::Config::default();
@@ -82,6 +79,7 @@ async fn main(spawner: Spawner) {
 
     let mut display = mipidsi::Builder::new(mipidsi::models::ST7789, display_spi_interface)
         .display_size(240, 240)
+        // .display_offset(0, 80)
         .invert_colors(mipidsi::options::ColorInversion::Inverted)
         .reset_pin(display_reset)
         .init(&mut Delay)
@@ -93,6 +91,16 @@ async fn main(spawner: Spawner) {
 
     info!("Spawning display task");
     spawner.spawn(display::display_task(display)).unwrap();
+
+    info!("Spawning touchscreen task");
+    spawner.spawn(touchscreen::touchscreen_task(
+        p.TWISPI1,
+        Irqs,
+        p.P0_06.into::<AnyPin>(),
+        p.P0_07.into::<AnyPin>(),
+        p.P0_28.into::<AnyPin>(),
+        p.P0_10.into::<AnyPin>(),
+    )).unwrap();
 
     loop {
         Timer::after(Duration::from_secs(1)).await;

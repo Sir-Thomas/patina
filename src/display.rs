@@ -1,17 +1,64 @@
-use defmt::debug;
+use core::cell::RefCell;
+
+use defmt::{debug, info};
 use embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice;
-use embassy_nrf::{gpio::Output, spim::Spim};
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-use embassy_time::{Duration, Timer};
+use embassy_nrf::{Peri, gpio::{Level, Output, OutputDrive}, peripherals, spim::{self, Spim}, spis};
+use embassy_sync::blocking_mutex::{Mutex as BlockingMutex, raw::NoopRawMutex};
+use embassy_time::{Delay, Duration, Timer};
 use embedded_graphics::{pixelcolor::Rgb565, prelude::*, primitives::Rectangle};
 use embedded_layout::{align::{Align, horizontal, vertical}, layout::linear::LinearLayout, prelude::Chain};
 use embedded_text::TextBox;
-use mipidsi::{Display, interface::SpiInterface, models::ST7789};
+use mipidsi::{interface::SpiInterface, models::ST7789, options::{Orientation, Rotation}};
+use static_cell::StaticCell;
 use u8g2_fonts::{U8g2TextStyle, fonts};
+
+use crate::Irqs;
+
+
+static DISPLAY_BUFFER: StaticCell<[u8; 512]> = StaticCell::new();
+static SPI_BUS: StaticCell<BlockingMutex<NoopRawMutex, RefCell<Spim<'static>>>> = StaticCell::new();
 
 
 #[embassy_executor::task]
-pub async fn display_task(mut display: Display<SpiInterface<'static, SpiDevice<'static, NoopRawMutex, Spim<'static>, Output<'static>>, Output<'static>>, ST7789, Output<'static>>) {
+pub async fn display_task(
+    twispi0: Peri<'static, peripherals::TWISPI0>,
+    irqs: Irqs,
+    sck_pin: Peri<'static, peripherals::P0_02>,
+    mosi_pin: Peri<'static, peripherals::P0_03>,
+    miso_pin: Peri<'static, peripherals::P0_04>,
+    data_clock_pin: Peri<'static, peripherals::P0_18>,
+    display_chip_select_pin: Peri<'static, peripherals::P0_25>,
+    display_reset_pin: Peri<'static, peripherals::P0_26>,
+) {
+
+    info!("Initializing spi bus");
+    let mut spim_config = spim::Config::default();
+    spim_config.frequency = spim::Frequency::M8;
+    spim_config.mode = spis::MODE_3;
+    let spim = spim::Spim::new(twispi0, irqs, sck_pin, miso_pin, mosi_pin, spim_config);
+    let spi_bus = SPI_BUS.init(BlockingMutex::new(RefCell::new(spim)));
+
+    info!("Initializing display");
+    let display_reset = Output::new(display_reset_pin, Level::Low, OutputDrive::Standard);
+    let display_cs = Output::new(display_chip_select_pin, Level::High, OutputDrive::Standard);
+    let display_spi = SpiDevice::new(spi_bus, display_cs);
+
+    let data_clock = Output::new(data_clock_pin, Level::Low, OutputDrive::Standard);
+    let buffer = DISPLAY_BUFFER.init([0_u8; 512]);
+    let display_spi_interface = SpiInterface::new(display_spi, data_clock, &mut *buffer);
+
+    let mut display = mipidsi::Builder::new(ST7789, display_spi_interface)
+        .display_size(240, 240)
+        // .display_offset(0, 80)
+        .invert_colors(mipidsi::options::ColorInversion::Inverted)
+        .reset_pin(display_reset)
+        .init(&mut Delay)
+        .unwrap();
+    display.set_orientation(Orientation::default().rotate(Rotation::Deg0)).unwrap();
+
+    info!("Clearing display");
+    display.clear(Rgb565::BLACK).unwrap();
+    
     loop {
         debug!("Updating display");
         let display_area = Rectangle::new(Point::zero(), display.size());
@@ -56,6 +103,21 @@ pub async fn display_task(mut display: Display<SpiInterface<'static, SpiDevice<'
         positioned_header.draw(&mut display).unwrap();
         positioned_clock.draw(&mut display).unwrap();
 
+        Timer::after(Duration::from_secs(1)).await;
+    }
+}
+
+#[embassy_executor::task]
+pub async fn backlight_task(
+    backlight_low_pin: Peri<'static, peripherals::P0_14>,
+    backlight_med_pin: Peri<'static, peripherals::P0_22>,
+    backlight_high_pin: Peri<'static, peripherals::P0_23>,
+) {
+    let _backlight_low = Output::new(backlight_low_pin, Level::High, OutputDrive::Standard);
+    let _backlight_med = Output::new(backlight_med_pin, Level::High, OutputDrive::Standard);
+    let _backlight_high = Output::new(backlight_high_pin, Level::Low, OutputDrive::Standard);
+
+    loop {
         Timer::after(Duration::from_secs(1)).await;
     }
 }

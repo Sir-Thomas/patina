@@ -4,8 +4,8 @@ use cst816s::{CST816S, TouchGesture};
 use defmt::info;
 use defmt_rtt as _;
 use embassy_embedded_hal::shared_bus::blocking::i2c::I2cDevice;
-use embassy_nrf::{Peri, gpio::{AnyPin, Input, Level, Output, OutputDrive, Pull}, peripherals::TWISPI1, twim::{self, Twim}};
-use embassy_sync::{blocking_mutex::{Mutex as BlockingMutex, raw::{NoopRawMutex, ThreadModeRawMutex}}, watch::{DynReceiver, Watch}};
+use embassy_nrf::{Peri, gpio::{Input, Level, Output, OutputDrive, Pull}, peripherals, twim::{self, Twim}};
+use embassy_sync::blocking_mutex::{Mutex as BlockingMutex, raw::NoopRawMutex};
 use embassy_time::{Delay, Timer};
 use panic_probe as _;
 use static_cell::StaticCell;
@@ -16,12 +16,12 @@ static I2C_BUS: StaticCell<BlockingMutex<NoopRawMutex, RefCell<Twim<'static>>>> 
 
 #[embassy_executor::task]
 pub async fn touchscreen_task(
-    twispi1: Peri<'static, TWISPI1>,
+    twispi1: Peri<'static, peripherals::TWISPI1>,
     irqs: Irqs,
-    sda: Peri<'static, AnyPin>,
-    scl: Peri<'static, AnyPin>,
-    touchscreen_interrupt_pin: Peri<'static, AnyPin>,
-    touchscreen_reset_pin: Peri<'static, AnyPin>,
+    sda: Peri<'static, peripherals::P0_06>,
+    scl: Peri<'static, peripherals::P0_07>,
+    touchscreen_interrupt_pin: Peri<'static, peripherals::P0_28>,
+    touchscreen_reset_pin: Peri<'static, peripherals::P0_10>,
 ) {
     let buffer = TOUCH_BUFFER.init([0; 256]);
     let mut twim_config = twim::Config::default();

@@ -1,4 +1,4 @@
-use core::cell::RefCell;
+use core::{cell::RefCell, ops::Not};
 
 use defmt::{debug, info};
 use embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice;
@@ -12,8 +12,7 @@ use mipidsi::{interface::SpiInterface, models::ST7789, options::{Orientation, Ro
 use static_cell::StaticCell;
 use u8g2_fonts::{U8g2TextStyle, fonts};
 
-use crate::{Irqs, button::ButtonAction};
-use crate::button::BUTTON_SIGNAL;
+use crate::{Irqs, state::BACKLIGHT_SIGNAL};
 
 
 static DISPLAY_BUFFER: StaticCell<[u8; 512]> = StaticCell::new();
@@ -108,14 +107,14 @@ pub async fn display_task(
     }
 }
 
-struct Backlight<'a> {
+struct BacklightController<'a> {
     low: Output<'a>,
     medium: Output<'a>,
     high: Output<'a>,
     brightness_level: BrightnessLevel,
 }
 
-impl<'a> Backlight<'a> {
+impl<'a> BacklightController<'a> {
     fn new(
         backlight_low_pin: Peri<'static, peripherals::P0_14>,
         backlight_med_pin: Peri<'static, peripherals::P0_22>,
@@ -135,20 +134,45 @@ impl<'a> Backlight<'a> {
         self.high.set_high();
         self.brightness_level = level;
         match level {
-            BrightnessLevel::Off => {},
             BrightnessLevel::Low => self.low.set_low(),
             BrightnessLevel::Medium => self.medium.set_low(),
             BrightnessLevel::High => self.high.set_low(),
         }
     }
+
+    fn backlight_off(&mut self) {
+        self.low.set_high();
+        self.medium.set_high();
+        self.high.set_high();
+    }
+
+    fn backlight_on(&mut self) {
+        self.set_brightness(self.brightness_level);
+    }
 }
 
 #[derive(Clone, Copy, defmt::Format)]
-enum BrightnessLevel {
-    Off,
+pub enum BrightnessLevel {
     Low,
     Medium,
     High,
+}
+
+#[derive(Clone, Copy, defmt::Format)]
+pub enum Backlight {
+    Off,
+    On,
+}
+
+impl Not for Backlight {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Backlight::Off => Backlight::On,
+            Backlight::On => Backlight::Off,
+        }
+    }
 }
 
 #[embassy_executor::task]
@@ -157,19 +181,11 @@ pub async fn backlight_task(
     backlight_med_pin: Peri<'static, peripherals::P0_22>,
     backlight_high_pin: Peri<'static, peripherals::P0_23>,
 ) {
-    let mut backlight = Backlight::new(backlight_low_pin, backlight_med_pin, backlight_high_pin);
+    let mut backlight_controller = BacklightController::new(backlight_low_pin, backlight_med_pin, backlight_high_pin);
     loop {
-        match BUTTON_SIGNAL.wait().await {
-            ButtonAction::Press => {
-                backlight.set_brightness(match backlight.brightness_level {
-                    BrightnessLevel::Off => BrightnessLevel::Low,
-                    BrightnessLevel::Low => BrightnessLevel::Medium,
-                    BrightnessLevel::Medium => BrightnessLevel::High,
-                    BrightnessLevel::High => BrightnessLevel::Low,
-                });
-                info!("Brightness level set: {}", backlight.brightness_level);
-            }
-            ButtonAction::Release => {}
+        match BACKLIGHT_SIGNAL.wait().await {
+            Backlight::Off => { backlight_controller.backlight_off(); info!("Backlight Off"); },
+            Backlight::On => { backlight_controller.backlight_on(); info!("Backlight On"); },
         }
     }
 }

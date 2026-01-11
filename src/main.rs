@@ -10,6 +10,7 @@ use panic_probe as _;
 
 mod button;
 mod display;
+mod state;
 mod touchscreen;
 mod watchdog;
 
@@ -85,5 +86,6 @@ async fn main(spawner: Spawner) {
     //TODO: Spawn Heart Rate task
     //TODO: Spawn Vibration Motor task
     //TODO: Spawn Battery task
-    //TODO: Spawn State Machine task
+    
+    spawner.spawn(state::state_machine_task()).unwrap();
 }

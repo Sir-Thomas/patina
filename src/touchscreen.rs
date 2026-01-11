@@ -20,6 +20,9 @@ pub async fn touchscreen_task(
     irqs: Irqs,
     sda: Peri<'static, peripherals::P0_06>,
     scl: Peri<'static, peripherals::P0_07>,
+    // fake interrupt pin is used because driver has not implemented interrupts
+    // we monitor the pin ourselves and wait for a signal
+    fake_touchscreen_interrupt_pin: Peri<'static, peripherals::P0_11>,
     touchscreen_interrupt_pin: Peri<'static, peripherals::P0_28>,
     touchscreen_reset_pin: Peri<'static, peripherals::P0_10>,
 ) {
@@ -30,18 +33,18 @@ pub async fn touchscreen_task(
     let i2c_bus = I2C_BUS.init(BlockingMutex::new(RefCell::new(i2c)));
 
     let i2c_touch_device = I2cDevice::new(i2c_bus);
-    let touch_interrupt = Input::new(touchscreen_interrupt_pin, Pull::Up);
+    let fake_touch_interrupt = Input::new(fake_touchscreen_interrupt_pin, Pull::Up); // see above
+    let mut touch_interrupt = Input::new(touchscreen_interrupt_pin, Pull::Up); // TODO: why does this need mut
     let touch_reset = Output::new(touchscreen_reset_pin, Level::High, OutputDrive::Standard);
-
-    let mut touch_controller = CST816S::new(i2c_touch_device, touch_interrupt, touch_reset);
+    let mut touch_controller = CST816S::new(i2c_touch_device, fake_touch_interrupt, touch_reset);
     if let Err(_e) = touch_controller.setup(&mut Delay) {
         defmt::panic!("Error initializing touch controller");
     }
 
     loop {
+        touch_interrupt.wait_for_low().await;
         if let Some(touch_event) = touch_controller.read_one_touch_event(false) {
-            info!("Touch event");
-            info!("x: {}, y: {}", touch_event.x, touch_event.y);
+            info!("Touch - x: {}, y: {}", touch_event.x, touch_event.y);
             match touch_event.action { // submit upstream patch?
                 0 => info!("Action: Down"),
                 1 => info!("Action: Up"),
@@ -59,6 +62,5 @@ pub async fn touchscreen_task(
                 TouchGesture::LongPress => info!("Gesture: Long Press"),
             }
         }
-        Timer::after_millis(500).await;
     }
 }

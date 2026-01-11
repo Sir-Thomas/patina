@@ -5,7 +5,7 @@
 use defmt::info;
 use defmt_rtt as _;
 use embassy_executor::Spawner;
-use embassy_nrf::{bind_interrupts, interrupt::Priority, peripherals, spim, twim};
+use embassy_nrf::{Peri, bind_interrupts, interrupt::Priority, peripherals, spim, twim};
 use panic_probe as _;
 
 mod button;
@@ -77,6 +77,7 @@ async fn main(spawner: Spawner) {
         Irqs,
         p.P0_06,
         p.P0_07,
+        p.P0_11,
         p.P0_28,
         p.P0_10,
     )).unwrap();

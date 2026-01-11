@@ -1,6 +1,15 @@
-use defmt::info;
+use defmt::debug;
 use embassy_nrf::{Peri, gpio::{Input, Level, Output, OutputDrive, Pull}, peripherals};
+use embassy_sync::{blocking_mutex::raw::ThreadModeRawMutex, signal::Signal};
 use embassy_time::Timer;
+
+#[derive(Clone, Copy)]
+pub enum ButtonAction {
+    Press,
+    Release,
+}
+
+pub static BUTTON_SIGNAL: Signal<ThreadModeRawMutex, ButtonAction> = Signal::new();
 
 
 #[embassy_executor::task]
@@ -12,9 +21,11 @@ pub async fn button_task(
     let mut button = Input::new(button_input, Pull::None);
     loop {
         button.wait_for_high().await;
+        debug!("Button pressed");
+        BUTTON_SIGNAL.signal(ButtonAction::Press);
         Timer::after_millis(200).await;
         button.wait_for_low().await;
-        info!("Button pressed, Rebooting PineTime");
-        cortex_m::peripheral::SCB::sys_reset(); // TODO: send event
+        debug!("Button released");
+        BUTTON_SIGNAL.signal(ButtonAction::Release);
     }
 }

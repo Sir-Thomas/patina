@@ -12,7 +12,8 @@ use mipidsi::{interface::SpiInterface, models::ST7789, options::{Orientation, Ro
 use static_cell::StaticCell;
 use u8g2_fonts::{U8g2TextStyle, fonts};
 
-use crate::Irqs;
+use crate::{Irqs, button::ButtonAction};
+use crate::button::BUTTON_SIGNAL;
 
 
 static DISPLAY_BUFFER: StaticCell<[u8; 512]> = StaticCell::new();
@@ -107,17 +108,68 @@ pub async fn display_task(
     }
 }
 
+struct Backlight<'a> {
+    low: Output<'a>,
+    medium: Output<'a>,
+    high: Output<'a>,
+    brightness_level: BrightnessLevel,
+}
+
+impl<'a> Backlight<'a> {
+    fn new(
+        backlight_low_pin: Peri<'static, peripherals::P0_14>,
+        backlight_med_pin: Peri<'static, peripherals::P0_22>,
+        backlight_high_pin: Peri<'static, peripherals::P0_23>,
+    ) -> Self {
+        Self {
+            low: Output::new(backlight_low_pin, Level::High, OutputDrive::Standard),
+            medium: Output::new(backlight_med_pin, Level::Low, OutputDrive::Standard),
+            high: Output::new(backlight_high_pin, Level::High, OutputDrive::Standard),
+            brightness_level: BrightnessLevel::Medium,
+        }
+    }
+
+    fn set_brightness(&mut self, level: BrightnessLevel) {
+        self.low.set_high();
+        self.medium.set_high();
+        self.high.set_high();
+        self.brightness_level = level;
+        match level {
+            BrightnessLevel::Off => {},
+            BrightnessLevel::Low => self.low.set_low(),
+            BrightnessLevel::Medium => self.medium.set_low(),
+            BrightnessLevel::High => self.high.set_low(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, defmt::Format)]
+enum BrightnessLevel {
+    Off,
+    Low,
+    Medium,
+    High,
+}
+
 #[embassy_executor::task]
 pub async fn backlight_task(
     backlight_low_pin: Peri<'static, peripherals::P0_14>,
     backlight_med_pin: Peri<'static, peripherals::P0_22>,
     backlight_high_pin: Peri<'static, peripherals::P0_23>,
 ) {
-    let _backlight_low = Output::new(backlight_low_pin, Level::High, OutputDrive::Standard);
-    let _backlight_med = Output::new(backlight_med_pin, Level::High, OutputDrive::Standard);
-    let _backlight_high = Output::new(backlight_high_pin, Level::Low, OutputDrive::Standard);
-
+    let mut backlight = Backlight::new(backlight_low_pin, backlight_med_pin, backlight_high_pin);
     loop {
-        Timer::after(Duration::from_secs(1)).await;
+        match BUTTON_SIGNAL.wait().await {
+            ButtonAction::Press => {
+                backlight.set_brightness(match backlight.brightness_level {
+                    BrightnessLevel::Off => BrightnessLevel::Low,
+                    BrightnessLevel::Low => BrightnessLevel::Medium,
+                    BrightnessLevel::Medium => BrightnessLevel::High,
+                    BrightnessLevel::High => BrightnessLevel::Low,
+                });
+                info!("Brightness level set: {}", backlight.brightness_level);
+            }
+            ButtonAction::Release => {}
+        }
     }
 }

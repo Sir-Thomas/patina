@@ -5,12 +5,13 @@
 use defmt::info;
 use defmt_rtt as _;
 use embassy_executor::Spawner;
-use embassy_nrf::{Peri, bind_interrupts, interrupt::Priority, peripherals, spim, twim};
+use embassy_nrf::{bind_interrupts, interrupt::Priority, peripherals, spim, twim};
 use panic_probe as _;
 
 mod button;
 mod display;
 mod state;
+mod time;
 mod touchscreen;
 mod watchdog;
 
@@ -42,6 +43,9 @@ async fn main(spawner: Spawner) {
     config.gpiote_interrupt_priority = Priority::P2;
     config.time_interrupt_priority = Priority::P2;
     let p = embassy_nrf::init(config);
+
+    info!("Spawning time task");
+    spawner.spawn(time::time_task()).unwrap();
 
     info!("Spawning watchdog task");
     spawner.spawn(watchdog::watchdog_task()).unwrap();

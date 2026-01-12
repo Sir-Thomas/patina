@@ -45,6 +45,7 @@ pub async fn state_machine_task() {
     let mut patina_state = PatinaState{ current_screen: Screen::Clock, backlight_state: Backlight::On };
     loop {
         let button_signal = BUTTON_SIGNAL.wait().await;
+        info!("STATE: Button event received");
         match button_signal {
             ButtonAction::Press => patina_state.handle_event(Event::ButtonPress),
             _ => {}

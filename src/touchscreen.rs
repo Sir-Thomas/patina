@@ -1,18 +1,19 @@
 use core::cell::RefCell;
 
-use cst816s::{CST816S, TouchGesture};
+use cst816s::{CST816S, TouchEvent, TouchGesture};
 use defmt::info;
 use defmt_rtt as _;
 use embassy_embedded_hal::shared_bus::blocking::i2c::I2cDevice;
 use embassy_nrf::{Peri, gpio::{Input, Level, Output, OutputDrive, Pull}, peripherals, twim::{self, Twim}};
-use embassy_sync::blocking_mutex::{Mutex as BlockingMutex, raw::NoopRawMutex};
-use embassy_time::{Delay, Timer};
+use embassy_sync::{blocking_mutex::{Mutex as BlockingMutex, raw::{NoopRawMutex, ThreadModeRawMutex}}, signal::Signal};
+use embassy_time::Delay;
 use panic_probe as _;
 use static_cell::StaticCell;
 use crate::Irqs;
 
 static TOUCH_BUFFER: StaticCell<[u8; 256]> = StaticCell::new();
 static I2C_BUS: StaticCell<BlockingMutex<NoopRawMutex, RefCell<Twim<'static>>>> = StaticCell::new();
+pub static TOUCH_SIGNAL: Signal<ThreadModeRawMutex, TouchEvent> = Signal::new();
 
 #[embassy_executor::task]
 pub async fn touchscreen_task(
@@ -43,6 +44,7 @@ pub async fn touchscreen_task(
 
     loop {
         touch_interrupt.wait_for_low().await;
+        info!("TOUCHSCREEN: Touch event detected");
         if let Some(touch_event) = touch_controller.read_one_touch_event(false) {
             info!("Touch - x: {}, y: {}", touch_event.x, touch_event.y);
             match touch_event.action { // submit upstream patch?
@@ -61,6 +63,7 @@ pub async fn touchscreen_task(
                 TouchGesture::DoubleClick => info!("Gesture: Double Click"),
                 TouchGesture::LongPress => info!("Gesture: Long Press"),
             }
+            TOUCH_SIGNAL.signal(touch_event);
         }
     }
 }

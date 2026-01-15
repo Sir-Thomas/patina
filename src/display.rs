@@ -5,13 +5,12 @@ use embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice;
 use embassy_nrf::{Peri, gpio::{Level, Output, OutputDrive}, peripherals, spim::{self, Spim}, spis};
 use embassy_sync::blocking_mutex::{Mutex as BlockingMutex, raw::NoopRawMutex};
 use embassy_time::{Delay, Duration, Timer};
-use embedded_graphics::{pixelcolor::Rgb565, prelude::*, primitives::Rectangle};
-use embedded_layout::{align::{Align, horizontal, vertical}, layout::linear::LinearLayout, prelude::Chain};
+use embedded_graphics::{pixelcolor::Rgb565, prelude::*, primitives::{PrimitiveStyleBuilder, Rectangle}};
+use embedded_layout::align::{Align, horizontal, vertical};
 use embedded_text::TextBox;
 use heapless::String;
 use mipidsi::{interface::SpiInterface, models::ST7789, options::{Orientation, Rotation}};
 use static_cell::StaticCell;
-use u8g2_fonts::{U8g2TextStyle, fonts};
 
 use crate::{Irqs, state::BACKLIGHT_SIGNAL, time::CURRENT_TIME};
 
@@ -19,6 +18,16 @@ use crate::{Irqs, state::BACKLIGHT_SIGNAL, time::CURRENT_TIME};
 static DISPLAY_BUFFER: StaticCell<[u8; 512]> = StaticCell::new();
 static SPI_BUS: StaticCell<BlockingMutex<NoopRawMutex, RefCell<Spim<'static>>>> = StaticCell::new();
 
+const LG_DIGIT_HEIGHT: u32 = 120;
+const LG_DIGIT_WIDTH: u32 = 45;
+const LG_DIGIT_SPACING: u32 = 15;
+const LG_SEGMENT_WIDTH: u32 = 10;
+const SM_DIGIT_HEIGHT: u32 = 24;
+const SM_DIGIT_WIDTH: u32 = 12;
+const SM_DIGIT_SPACING: u32 = 4;
+const SM_SEGMENT_WIDTH: u32 = 3;
+const LG_SIZE: Size = Size::new(LG_DIGIT_WIDTH * 2 + LG_DIGIT_SPACING, LG_DIGIT_HEIGHT + LG_DIGIT_SPACING);
+const SM_SIZE: Size = Size::new(SM_DIGIT_WIDTH * 2 + SM_DIGIT_SPACING, SM_DIGIT_HEIGHT + SM_DIGIT_SPACING);
 
 #[embassy_executor::task]
 pub async fn display_task(
@@ -58,79 +67,121 @@ pub async fn display_task(
         .unwrap();
     display.set_orientation(Orientation::default().rotate(Rotation::Deg0)).unwrap();
 
+    display.clear(Rgb565::BLACK).unwrap();
+
 
     Timer::after_millis(100).await;
+    let mut previous_time = current_time_watcher.try_get().unwrap();
+    let display_area = Rectangle::new(Point::new(0, 0), display.size());
+
+    let lg_digit_style = eg_seven_segment::SevenSegmentStyleBuilder::new()
+        .digit_size(Size::new(LG_DIGIT_WIDTH, LG_DIGIT_HEIGHT))
+        .digit_spacing(LG_DIGIT_SPACING)
+        .segment_width(LG_SEGMENT_WIDTH)
+        .segment_color(Rgb565::GREEN)
+        .build();
+    let sm_digit_style = eg_seven_segment::SevenSegmentStyleBuilder::new()
+        .digit_size(Size::new(SM_DIGIT_WIDTH, SM_DIGIT_HEIGHT))
+        .digit_spacing(SM_DIGIT_SPACING)
+        .segment_width(SM_SEGMENT_WIDTH)
+        .segment_color(Rgb565::GREEN)
+        .build();
+    let bg_style = PrimitiveStyleBuilder::new()
+        .fill_color(Rgb565::BLACK)
+        .build();
+
+    let colon_text = TextBox::new(
+        ":",
+        Rectangle::new(Point::zero(), Size::new(LG_SEGMENT_WIDTH, LG_DIGIT_HEIGHT + LG_DIGIT_SPACING)),
+        lg_digit_style
+    );
+    let hour_str = num_to_string(previous_time.hour());
+    let hours_text = TextBox::new(
+        hour_str.as_str(),
+        Rectangle::new(Point::zero(), LG_SIZE),
+        lg_digit_style,
+    );
+    let minute_str = num_to_string(previous_time.minute());
+    let minutes_text = TextBox::new(
+        minute_str.as_str(),
+        Rectangle::new(Point::zero(), LG_SIZE),
+        lg_digit_style,
+    );
+    let second_str = num_to_string(previous_time.second());
+    let seconds_text = TextBox::new(
+        second_str.as_str(),
+        Rectangle::new(Point::zero(), SM_SIZE),
+        sm_digit_style,
+    );
+    let positioned_colon = colon_text.align_to(&display_area, horizontal::Center, vertical::Center);
+    positioned_colon.draw(&mut display).unwrap();
+    let positioned_seconds = seconds_text.align_to(&display_area, horizontal::Right, vertical::Bottom);
+    positioned_seconds.draw(&mut display).unwrap();
+    let positioned_minutes = minutes_text.align_to(&display_area, horizontal::Right, vertical::Center);
+    positioned_minutes.draw(&mut display).unwrap();
+    let positioned_hours = hours_text.align_to(&display_area, horizontal::Left, vertical::Center);
+    positioned_hours.draw(&mut display).unwrap();
     
     loop {
-        debug!("Updating display");
-        display.clear(Rgb565::BLACK).unwrap();
-        let display_area = Rectangle::new(Point::zero(), display.size());
+        debug!("Updating Display");
 
-        let title = TextBox::new(
-            "Patina",
-            Rectangle::new(Point::zero(), Size::new(90, 12)),
-            U8g2TextStyle::new(fonts::u8g2_font_6x10_tr, Rgb565::WHITE)
-        );
-        let feature = TextBox::new(
-            "MCUBoot",
-            Rectangle::new(Point::zero(), Size::new(90, 12)),
-            U8g2TextStyle::new(fonts::u8g2_font_6x10_tr, Rgb565::WHITE)
-        );
-        const DIGIT_HEIGHT: u32 = 120;
-        const DIGIT_WIDTH: u32 = 40;
-        const DIGIT_SPACING: u32 = 15;
-        const SEGMENT_WIDTH: u32 = 10;
-        let total_width = 4 * DIGIT_WIDTH + 4 * DIGIT_SPACING + SEGMENT_WIDTH;
         let current_time = current_time_watcher.try_get().unwrap();
-        let hours = current_time.hour();
-        let minutes = current_time.minute();
-        let mut formatted_time = String::<5>::new();
-        formatted_time.push(char::from_digit((hours / 10) as u32, 10).unwrap()).unwrap();
-        formatted_time.push(char::from_digit((hours % 10) as u32, 10).unwrap()).unwrap();
-        formatted_time.push(':').unwrap();
-        formatted_time.push(char::from_digit((minutes / 10) as u32, 10).unwrap()).unwrap();
-        formatted_time.push(char::from_digit((minutes % 10) as u32, 10).unwrap()).unwrap();
-        let mut seconds = String::<2>::new();
-        seconds.push(char::from_digit((current_time.second() / 10) as u32, 10).unwrap()).unwrap();
-        seconds.push(char::from_digit((current_time.second() % 10) as u32, 10).unwrap()).unwrap();
-        let clock = TextBox::new(
-            formatted_time.as_str(),
-            Rectangle::new(Point::zero(), Size::new(total_width, DIGIT_HEIGHT + DIGIT_SPACING)),
-            eg_seven_segment::SevenSegmentStyleBuilder::new()
-                .digit_size(Size::new(DIGIT_WIDTH, DIGIT_HEIGHT))
-                .digit_spacing(DIGIT_SPACING)
-                .segment_width(SEGMENT_WIDTH)
-                .segment_color(Rgb565::GREEN)
-                .build()
-        );
-        let seconds_display = TextBox::new(
-            seconds.as_str(),
-            Rectangle::new(Point::zero(), Size::new(30, 30)),
-            eg_seven_segment::SevenSegmentStyleBuilder::new()
-                .digit_size(Size::new(12, 24))
-                .digit_spacing(4)
-                .segment_width(2)
-                .segment_color(Rgb565::GREEN)
-                .build()
-        );        
-        let header = LinearLayout::horizontal(
-            Chain::new(title)
-                .append(feature)
-        )
-            .with_alignment(vertical::Top)
-            .arrange();
 
-        let positioned_header = header.align_to(&display_area, horizontal::Center, vertical::Top);
-        let positioned_clock = clock.align_to(&display_area, horizontal::Center, vertical::Center);
-            // .translate(Point::new(10, 0));
-        let positioned_seconds = seconds_display.align_to(&display_area, horizontal::Left, vertical::Top);
+        debug!("Current Time: {:02}:{:02}:{:02}", current_time.hour(), current_time.minute(), current_time.second());
 
-        // positioned_header.draw(&mut display).unwrap();
-        positioned_clock.draw(&mut display).unwrap();
-        positioned_seconds.draw(&mut display).unwrap();
+        if current_time.hour() != previous_time.hour() {
+            let hour_str = num_to_string(current_time.hour());
+            let hours_text = TextBox::new(
+                hour_str.as_str(),
+                Rectangle::new(Point::new(20, 20), Size::new(LG_DIGIT_WIDTH * 2 + LG_DIGIT_SPACING, LG_DIGIT_HEIGHT + LG_DIGIT_SPACING)),
+                lg_digit_style,
+            );
+            let background = Rectangle::new(Point::zero(), LG_SIZE).into_styled(bg_style);
+            let positioned_background = background.align_to(&display_area, horizontal::Left, vertical::Center);
+            positioned_background.draw(&mut display).unwrap();
+            let positioned_hours = hours_text.align_to(&display_area, horizontal::Left, vertical::Center);
+            positioned_hours.draw(&mut display).unwrap();
+        }
+        if current_time.minute() != previous_time.minute() {
+            let minute_str = num_to_string(current_time.minute());
+            let minutes_text = TextBox::new(
+                minute_str.as_str(),
+                Rectangle::new(Point::new(20, 20), Size::new(LG_DIGIT_WIDTH * 2 + LG_DIGIT_SPACING, LG_DIGIT_HEIGHT + LG_DIGIT_SPACING)),
+                lg_digit_style,
+            );
+            let background = Rectangle::new(Point::zero(), LG_SIZE).into_styled(bg_style);
+            let positioned_background = background.align_to(&display_area, horizontal::Right, vertical::Center);
+            positioned_background.draw(&mut display).unwrap();
+            let positioned_minutes = minutes_text.align_to(&display_area, horizontal::Right, vertical::Center);
+            positioned_minutes.draw(&mut display).unwrap();
+        }
+        if current_time.second() != previous_time.second() {
+            let second_str = num_to_string(current_time.second());
+            let seconds_text = TextBox::new(
+                second_str.as_str(),
+                Rectangle::new(Point::new(20, 20), Size::new(SM_DIGIT_WIDTH * 2 + SM_DIGIT_SPACING, SM_DIGIT_HEIGHT + SM_DIGIT_SPACING)),
+                sm_digit_style,
+            );
+            let background = Rectangle::new(Point::zero(), SM_SIZE).into_styled(bg_style);
+            let positioned_background = background.align_to(&display_area, horizontal::Right, vertical::Bottom);
+            positioned_background.draw(&mut display).unwrap();
+            let positioned_seconds = seconds_text.align_to(&display_area, horizontal::Right, vertical::Bottom);
+            positioned_seconds.draw(&mut display).unwrap();
+        }
 
-        Timer::after(Duration::from_secs(1)).await;
+        previous_time = current_time;
+
+        Timer::after(Duration::from_millis(50)).await;
     }
+}
+
+fn num_to_string(num: u8) -> String<8> {
+    let tens = num / 10;
+    let units = num % 10;
+    let mut num_string = String::<8>::new();
+    num_string.push(char::from_digit(tens as u32, 10).unwrap()).unwrap();
+    num_string.push(char::from_digit(units as u32, 10).unwrap()).unwrap();
+    num_string
 }
 
 struct BacklightController<'a> {

@@ -36,7 +36,7 @@ pub async fn display_task(
     sck_pin: Peri<'static, peripherals::P0_02>,
     mosi_pin: Peri<'static, peripherals::P0_03>,
     miso_pin: Peri<'static, peripherals::P0_04>,
-    data_clock_pin: Peri<'static, peripherals::P0_18>,
+    data_command_pin: Peri<'static, peripherals::P0_18>,
     display_chip_select_pin: Peri<'static, peripherals::P0_25>,
     display_reset_pin: Peri<'static, peripherals::P0_26>,
 ) {
@@ -54,9 +54,9 @@ pub async fn display_task(
     let display_cs = Output::new(display_chip_select_pin, Level::High, OutputDrive::Standard);
     let display_spi = SpiDevice::new(spi_bus, display_cs);
 
-    let data_clock = Output::new(data_clock_pin, Level::Low, OutputDrive::Standard);
+    let data_command = Output::new(data_command_pin, Level::Low, OutputDrive::Standard);
     let buffer = DISPLAY_BUFFER.init([0_u8; 512]);
-    let display_spi_interface = SpiInterface::new(display_spi, data_clock, &mut *buffer);
+    let display_spi_interface = SpiInterface::new(display_spi, data_command, &mut *buffer);
 
     let mut display = mipidsi::Builder::new(ST7789, display_spi_interface)
         .display_size(240, 240)

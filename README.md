@@ -1,16 +1,14 @@
+# Flash Bare Metal
+Must be using bare metal values for memory.x and comment out VTOR
+```
+cargo run
+```
+
 # Flash MCUBoot
 ```
 probe-rs erase --chip nRF52832_xxAA
 probe-rs download bootloader-1.0.1.bin --binary-format Binary --chip nRF52832_xxAA
 ```
-
-# Create venv for MCUBoot Image Tool
-```
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r scripts/requirements.txt
-```
-
 
 # Build for MCUBoot and Flash
 Must be using MCUBoot values for memory.x and VTOR.
@@ -33,4 +31,29 @@ probe-rs attach --chip nRF52832_xxAA target/thumbv7em-none-eabihf/release/patina
 You must be in the python venv to run adafruit-nrfutil.
 ```
 adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application patina-image.bin patina-dfu.zip
+```
+
+# Preparing your environment
+```
+sudo usermod -a -G plugdev $USER
+sudo apt install rustup libudev-dev
+rustup default stable
+rustup target add thumbv7em-none-eabihf
+cargo install probe-rs-tools
+sudo curl -o /etc/udev/rules.d/69-probe-rs.rules https://probe.rs/files/69-probe-rs.rules
+sudo reboot
+```
+Add the following to ~/.profile
+```
+# set PATH so it includes user's cargo bin if it exists
+if [ -d "$HOME/.cargo/bin" ] ; then
+    PATH="$HOME/.cargo/bin:$PATH"
+fi
+```
+
+# Create venv for MCUBoot Image Tool
+```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r scripts/requirements.txt
 ```

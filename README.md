@@ -1,5 +1,4 @@
 # Flash MCUBoot
-Must be using baremetal values for memory.x and VTOR.
 ```
 probe-rs erase --chip nRF52832_xxAA
 probe-rs download bootloader-1.0.1.bin --binary-format Binary --chip nRF52832_xxAA
@@ -14,6 +13,7 @@ pip install -r scripts/requirements.txt
 
 
 # Build for MCUBoot and Flash
+Must be using MCUBoot values for memory.x and VTOR.
 ```
 cargo objcopy --release -- -O binary patina.bin
 scripts/imgtool.py create --header-size 32 --align 4 --version 1.0.0 --slot-size 475136 --pad-header patina.bin patina-image.bin

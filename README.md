@@ -36,7 +36,7 @@ adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application patina-image.bin pat
 # Preparing your environment
 ```
 sudo usermod -a -G plugdev $USER
-sudo apt install rustup libudev-dev
+sudo apt install rustup libudev-dev libclang-dev
 rustup default stable
 rustup target add thumbv7em-none-eabihf
 cargo install probe-rs-tools

@@ -1,22 +1,21 @@
-use core::cell::RefCell;
-
 use defmt::{debug, info};
-use embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice;
+use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
 use embassy_nrf::{Peri, gpio::{Level, Output, OutputDrive}, peripherals, spim::{self, Spim}, spis};
-use embassy_sync::blocking_mutex::{Mutex as BlockingMutex, raw::NoopRawMutex};
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_time::{Delay, Duration, Timer};
-use embedded_graphics::{pixelcolor::Rgb565, prelude::*, primitives::{PrimitiveStyleBuilder, Rectangle}};
+use embedded_graphics::{pixelcolor::Rgb565, prelude::*, primitives::{Circle, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle}};
 use embedded_layout::align::{Align, horizontal, vertical};
 use embedded_text::TextBox;
 use heapless::String;
-use mipidsi::{interface::SpiInterface, models::ST7789, options::{Orientation, Rotation}};
+use lcd_async::{Builder, interface::SpiInterface, options::{self, Orientation, Rotation}, raw_framebuf::RawFrameBuf};
 use static_cell::StaticCell;
 
 use crate::{Irqs, time::CURRENT_TIME};
 
 
-static DISPLAY_BUFFER: StaticCell<[u8; 512]> = StaticCell::new();
-static SPI_BUS: StaticCell<BlockingMutex<NoopRawMutex, RefCell<Spim<'static>>>> = StaticCell::new();
+static FRAME_BUFFER_SIZE: usize = 240 * 20 * 2;
+static FRAME_BUFFER: StaticCell<[u8; FRAME_BUFFER_SIZE]> = StaticCell::new();
+static SPI_BUS: StaticCell<Mutex<NoopRawMutex, Spim<'static>>> = StaticCell::new();
 
 const LG_DIGIT_HEIGHT: u32 = 120;
 const LG_DIGIT_WIDTH: u32 = 45;
@@ -42,37 +41,63 @@ pub async fn display_task(
 ) {
     let mut current_time_watcher = CURRENT_TIME.dyn_anon_receiver();
 
-    info!("Initializing spi bus");
+    // info!("Initializing spi bus");
     let mut spim_config = spim::Config::default();
     spim_config.frequency = spim::Frequency::M8;
     spim_config.mode = spis::MODE_3;
     let spim = spim::Spim::new(twispi0, irqs, sck_pin, miso_pin, mosi_pin, spim_config);
-    let spi_bus = SPI_BUS.init(BlockingMutex::new(RefCell::new(spim)));
+    let spi_bus = Mutex::new(spim);
+    let spi_bus = SPI_BUS.init(spi_bus);
 
-    info!("Initializing display");
+    // info!("Initializing display");
     let display_reset = Output::new(display_reset_pin, Level::Low, OutputDrive::Standard);
     let display_cs = Output::new(display_chip_select_pin, Level::High, OutputDrive::Standard);
     let display_spi = SpiDevice::new(spi_bus, display_cs);
 
     let data_command = Output::new(data_command_pin, Level::Low, OutputDrive::Standard);
-    let buffer = DISPLAY_BUFFER.init([0_u8; 512]);
-    let display_spi_interface = SpiInterface::new(display_spi, data_command, &mut *buffer);
+    let display_spi_interface = SpiInterface::new(display_spi, data_command);
 
-    let mut display = mipidsi::Builder::new(ST7789, display_spi_interface)
+    // SPI pins for ESP32-C3 (adjust these according to your wiring)
+    // let sclk = peripherals.GPIO6; // SCL
+    // let mosi = peripherals.GPIO7; // SDA
+    // let res = peripherals.GPIO10; // RES (Reset)
+    // let dc = peripherals.GPIO2; // DC (Data/Command)
+    // let cs = peripherals.GPIO3; // CS (Chip Select)
+
+    let mut display = Builder::new(lcd_async::models::ST7789, display_spi_interface)
         .display_size(240, 240)
         // .display_offset(0, 80)
-        .invert_colors(mipidsi::options::ColorInversion::Inverted)
+        .invert_colors(options::ColorInversion::Inverted)
         .reset_pin(display_reset)
         .init(&mut Delay)
+        .await
         .unwrap();
-    display.set_orientation(Orientation::default().rotate(Rotation::Deg0)).unwrap();
+    display.set_orientation(Orientation::default().rotate(Rotation::Deg0)).await.unwrap();
 
-    display.clear(Rgb565::BLACK).unwrap();
+    // display.clear(Rgb565::BLACK).unwrap();
+
+    info!("Initializing frame buffer");
+    let frame_buffer = FRAME_BUFFER.init_with(|| [0; FRAME_BUFFER_SIZE]);
+
+    for i in 0..12 {
+        let mut fbuf = RawFrameBuf::<Rgb565, _>::new(frame_buffer.as_mut_slice(), 240, 20);
+
+        fbuf.clear(Rgb565::RED).unwrap();
+        display
+            .show_raw_data(0, 20 * i as u16, 240 as u16, 20 as u16, frame_buffer)
+            .await
+            .unwrap();
+    }
+    info!("Display complete");
+
+    loop {
+        Timer::after_secs(5).await;
+    }
 
 
     Timer::after_millis(100).await;
     let mut previous_time = current_time_watcher.try_get().unwrap();
-    let display_area = Rectangle::new(Point::new(0, 0), display.size());
+    let display_area = Rectangle::new(Point::new(0, 0), Size::new(240, 240));
 
     let lg_digit_style = eg_seven_segment::SevenSegmentStyleBuilder::new()
         .digit_size(Size::new(LG_DIGIT_WIDTH, LG_DIGIT_HEIGHT))
@@ -114,13 +139,13 @@ pub async fn display_task(
         sm_digit_style,
     );
     let positioned_colon = colon_text.align_to(&display_area, horizontal::Center, vertical::Center);
-    positioned_colon.draw(&mut display).unwrap();
+    // positioned_colon.draw(&mut display).unwrap();
     let positioned_seconds = seconds_text.align_to(&display_area, horizontal::Right, vertical::Bottom);
-    positioned_seconds.draw(&mut display).unwrap();
+    // positioned_seconds.draw(&mut display).unwrap();
     let positioned_minutes = minutes_text.align_to(&display_area, horizontal::Right, vertical::Center);
-    positioned_minutes.draw(&mut display).unwrap();
+    // positioned_minutes.draw(&mut display).unwrap();
     let positioned_hours = hours_text.align_to(&display_area, horizontal::Left, vertical::Center);
-    positioned_hours.draw(&mut display).unwrap();
+    // positioned_hours.draw(&mut display).unwrap();
     
     loop {
         debug!("Updating Display");
@@ -138,9 +163,9 @@ pub async fn display_task(
             );
             let background = Rectangle::new(Point::zero(), LG_SIZE).into_styled(bg_style);
             let positioned_background = background.align_to(&display_area, horizontal::Left, vertical::Center);
-            positioned_background.draw(&mut display).unwrap();
+            // positioned_background.draw(&mut display).unwrap();
             let positioned_hours = hours_text.align_to(&display_area, horizontal::Left, vertical::Center);
-            positioned_hours.draw(&mut display).unwrap();
+            // positioned_hours.draw(&mut display).unwrap();
         }
         if current_time.minute() != previous_time.minute() {
             let minute_str = num_to_string(current_time.minute());
@@ -151,9 +176,9 @@ pub async fn display_task(
             );
             let background = Rectangle::new(Point::zero(), LG_SIZE).into_styled(bg_style);
             let positioned_background = background.align_to(&display_area, horizontal::Right, vertical::Center);
-            positioned_background.draw(&mut display).unwrap();
+            // positioned_background.draw(&mut display).unwrap();
             let positioned_minutes = minutes_text.align_to(&display_area, horizontal::Right, vertical::Center);
-            positioned_minutes.draw(&mut display).unwrap();
+            // positioned_minutes.draw(&mut display).unwrap();
         }
         if current_time.second() != previous_time.second() {
             let second_str = num_to_string(current_time.second());
@@ -164,9 +189,9 @@ pub async fn display_task(
             );
             let background = Rectangle::new(Point::zero(), SM_SIZE).into_styled(bg_style);
             let positioned_background = background.align_to(&display_area, horizontal::Right, vertical::Bottom);
-            positioned_background.draw(&mut display).unwrap();
+            // positioned_background.draw(&mut display).unwrap();
             let positioned_seconds = seconds_text.align_to(&display_area, horizontal::Right, vertical::Bottom);
-            positioned_seconds.draw(&mut display).unwrap();
+            // positioned_seconds.draw(&mut display).unwrap();
         }
 
         previous_time = current_time;

@@ -12,9 +12,13 @@ use static_cell::StaticCell;
 
 use crate::{Irqs, time::CURRENT_TIME};
 
-
-static FRAME_BUFFER_SIZE: usize = 240 * 20 * 2;
-static FRAME_BUFFER: StaticCell<[u8; FRAME_BUFFER_SIZE]> = StaticCell::new();
+const WIDTH: usize = 240;
+const HEIGHT: usize = 240;
+const FRAMEBUFFER_ROWS: usize = 10;
+const FRAMEBUFFER_HEIGHT: usize = HEIGHT / FRAMEBUFFER_ROWS;
+const BYTES_PER_PIXEL: usize = 2;
+const FRAMEBUFFER_SIZE: usize = WIDTH * FRAMEBUFFER_HEIGHT * BYTES_PER_PIXEL;
+static FRAMEBUFFER: StaticCell<[u8; FRAMEBUFFER_SIZE]> = StaticCell::new();
 static SPI_BUS: StaticCell<Mutex<NoopRawMutex, Spim<'static>>> = StaticCell::new();
 
 const LG_DIGIT_HEIGHT: u32 = 120;
@@ -57,15 +61,8 @@ pub async fn display_task(
     let data_command = Output::new(data_command_pin, Level::Low, OutputDrive::Standard);
     let display_spi_interface = SpiInterface::new(display_spi, data_command);
 
-    // SPI pins for ESP32-C3 (adjust these according to your wiring)
-    // let sclk = peripherals.GPIO6; // SCL
-    // let mosi = peripherals.GPIO7; // SDA
-    // let res = peripherals.GPIO10; // RES (Reset)
-    // let dc = peripherals.GPIO2; // DC (Data/Command)
-    // let cs = peripherals.GPIO3; // CS (Chip Select)
-
     let mut display = Builder::new(lcd_async::models::ST7789, display_spi_interface)
-        .display_size(240, 240)
+        .display_size(WIDTH as u16, HEIGHT as u16)
         // .display_offset(0, 80)
         .invert_colors(options::ColorInversion::Inverted)
         .reset_pin(display_reset)
@@ -74,17 +71,18 @@ pub async fn display_task(
         .unwrap();
     display.set_orientation(Orientation::default().rotate(Rotation::Deg0)).await.unwrap();
 
-    // display.clear(Rgb565::BLACK).unwrap();
-
     info!("Initializing frame buffer");
-    let frame_buffer = FRAME_BUFFER.init_with(|| [0; FRAME_BUFFER_SIZE]);
+    let framebuffer = FRAMEBUFFER.init_with(|| [0; FRAMEBUFFER_SIZE]);
 
-    for i in 0..12 {
-        let mut fbuf = RawFrameBuf::<Rgb565, _>::new(frame_buffer.as_mut_slice(), 240, 20);
+    for i in 0..FRAMEBUFFER_ROWS {
+        let mut fbuf = RawFrameBuf::<Rgb565, _>::new(framebuffer.as_mut_slice(), WIDTH, FRAMEBUFFER_HEIGHT);
 
         fbuf.clear(Rgb565::RED).unwrap();
         display
-            .show_raw_data(0, 20 * i as u16, 240 as u16, 20 as u16, frame_buffer)
+            .show_raw_data(
+                0, (FRAMEBUFFER_HEIGHT * i) as u16,
+                WIDTH as u16, FRAMEBUFFER_HEIGHT as u16, 
+                framebuffer)
             .await
             .unwrap();
     }
@@ -97,7 +95,7 @@ pub async fn display_task(
 
     Timer::after_millis(100).await;
     let mut previous_time = current_time_watcher.try_get().unwrap();
-    let display_area = Rectangle::new(Point::new(0, 0), Size::new(240, 240));
+    let display_area = Rectangle::new(Point::new(0, 0), Size::new(WIDTH as u32, HEIGHT as u32));
 
     let lg_digit_style = eg_seven_segment::SevenSegmentStyleBuilder::new()
         .digit_size(Size::new(LG_DIGIT_WIDTH, LG_DIGIT_HEIGHT))

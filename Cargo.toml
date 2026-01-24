@@ -18,10 +18,11 @@ embassy-nrf = { version = "0.9.0", features = ["defmt", "gpiote", "nfc-pins-as-g
 embassy-sync = { version = "0.7.2", features = ["defmt"] }
 embassy-time = { version = "0.5.0", features = ["defmt", "defmt-timestamp-uptime"] }
 embedded-graphics = { version = "0.8.1", features = ["defmt"] }
+embedded-hal-async = { version = "1.0.0", features = ["defmt-03"] }
 embedded-layout = "0.4.2"
 embedded-text = "0.7.3"
 heapless = { version = "0.9.2", features = ["defmt"] }
-mipidsi = { version = "0.9.0", features = ["heapless"] }
+lcd-async = "0.1.1"
 nrf-sdc = { version = "0.4.0", default-features = false, features = ["defmt", "nrf52832", "peripheral"] }
 panic-probe = { version = "1.0.0", features = ["defmt"] }
 static_cell = "2.1.1"
@@ -30,6 +31,7 @@ trouble-host = { version = "0.5.1", features = ["defmt", "gatt", "peripheral"] }
 u8g2-fonts = { version = "0.7.2", features = ["embedded_graphics_textstyle"] }
 
 [patch.crates-io]
+lcd-async = { git = "https://github.com/okhsunrog/lcd-async.git", rev = "50efe0a30a4c68a1502049556b2ffb27c13b9539" }
 nrf-sdc = { git = "https://github.com/alexmoon/nrf-sdc.git", rev = "8ac007cbd4556e1123bee2479d66272ddf355844" }
 trouble-host = { git = "https://github.com/embassy-rs/trouble.git", rev = "e658d7e1a6d669788d3cd8e23f3d078e55952772"}
 

@@ -584,6 +584,9 @@ name = "embedded-hal"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "361a90feb7004eca4019fb28352a9465666b24f840f5c3cddf0ff13920590b89"
+dependencies = [
+ "defmt 0.3.100",
+]
 
 [[package]]
 name = "embedded-hal-async"
@@ -591,6 +594,7 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c4c685bbef7fe13c3c6dd4da26841ed3980ef33e841cddfa15ce8a8fb3f1884"
 dependencies = [
+ "defmt 0.3.100",
  "embedded-hal 1.0.0",
 ]
 
@@ -890,6 +894,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
+name = "lcd-async"
+version = "0.1.1"
+source = "git+https://github.com/okhsunrog/lcd-async.git?rev=50efe0a30a4c68a1502049556b2ffb27c13b9539#50efe0a30a4c68a1502049556b2ffb27c13b9539"
+dependencies = [
+ "embedded-graphics",
+ "embedded-graphics-core",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.180"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -952,18 +967,6 @@ checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
 dependencies = [
  "adler2",
  "simd-adler32",
-]
-
-[[package]]
-name = "mipidsi"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ba34dcbf61182ffa6992b5a4d9b566d5a99df127fd93f6d314213347329e92f"
-dependencies = [
- "embedded-graphics-core",
- "embedded-hal 1.0.0",
- "heapless 0.8.0",
- "nb 1.1.0",
 ]
 
 [[package]]
@@ -1145,10 +1148,11 @@ dependencies = [
  "embassy-time",
  "embedded-graphics",
  "embedded-graphics-simulator",
+ "embedded-hal-async",
  "embedded-layout",
  "embedded-text",
  "heapless 0.9.2",
- "mipidsi",
+ "lcd-async",
  "nrf-sdc",
  "panic-probe",
  "static_cell",

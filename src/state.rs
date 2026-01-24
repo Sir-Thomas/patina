@@ -2,7 +2,7 @@ use defmt::info;
 use embassy_sync::{blocking_mutex::raw::ThreadModeRawMutex, signal::Signal};
 use embedded_graphics::prelude::Point;
 
-use crate::{button::{BUTTON_SIGNAL, ButtonAction}, display::Backlight};
+use crate::{button::{BUTTON_SIGNAL, ButtonAction}, backlight::Backlight};
 
 
 pub static BACKLIGHT_SIGNAL: Signal<ThreadModeRawMutex, Backlight> = Signal::new();

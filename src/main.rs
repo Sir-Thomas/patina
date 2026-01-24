@@ -8,6 +8,7 @@ use embassy_executor::Spawner;
 use embassy_nrf::{bind_interrupts, interrupt::Priority, peripherals, spim, twim};
 use panic_probe as _;
 
+mod backlight;
 mod button;
 mod display;
 mod state;
@@ -57,7 +58,7 @@ async fn main(spawner: Spawner) {
     )).unwrap();
 
     info!("Spawning backlight task");
-    spawner.spawn(display::backlight_task(
+    spawner.spawn(backlight::backlight_task(
         p.P0_14,
         p.P0_22,
         p.P0_23

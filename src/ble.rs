@@ -1,7 +1,7 @@
 use defmt::{unwrap, info};
 use embassy_executor::Spawner;
 use embassy_nrf::rng::Rng;
-use embassy_nrf::{Peri, Peripherals, mode, peripherals};
+use embassy_nrf::{Peri, mode, peripherals};
 use nrf_sdc::mpsl::{MultiprotocolServiceLayer, Peripherals as MpslPeripherals, raw};
 use nrf_sdc::{Builder, Mem, Peripherals as SdcPeripherals, SoftdeviceController};
 use static_cell::StaticCell;
@@ -30,7 +30,7 @@ pub struct PineTimeServer {
     // uart: NrfUartService,
 }
 
-fn create_mpsl(
+pub fn create_mpsl(
     rtc0: Peri<'static, peripherals::RTC0>,
     timer0: Peri<'static, peripherals::TIMER0>,
     temp: Peri<'static, peripherals::TEMP>,
@@ -76,9 +76,9 @@ async fn ble_task(mut runner: Runner<'static, SoftdeviceController<'static>, Def
 
 #[embassy_executor::task]
 async fn advertise_task(
-    stack: &'static Stack<'static, SoftdeviceController<'static>, DefaultPacketPool>,
+    // stack: &'static Stack<'static, SoftdeviceController<'static>, DefaultPacketPool>,
     mut peripheral: Peripheral<'static, SoftdeviceController<'static>, DefaultPacketPool>,
-    server: &'static PineTimeServer<'static>,
+    // server: &'static PineTimeServer<'static>,
     // mut dfu_config: DfuConfig<'static>,
     // battery: &'static Battery<'static>,
 ) {
@@ -115,45 +115,19 @@ async fn advertise_task(
     }
 }
 
-
 pub fn start(
-    peripherals: Peripherals,
+    mpsl: &'static MultiprotocolServiceLayer<'static>,
+    sdc_p: SdcPeripherals<'static>,
+    rng: Peri<'static, peripherals::RNG>,
     irqs: Irqs,
     spawner: Spawner,
-) -> ! {
-    info!("Creating mpsl");
-    let mpsl = create_mpsl(
-        peripherals.RTC0,
-        peripherals.TIMER0,
-        peripherals.TEMP,
-        peripherals.PPI_CH19,
-        peripherals.PPI_CH30,
-        peripherals.PPI_CH31,
-        irqs
-    );
-
-    info!("Creating sdc peripherals");
-    let sdc_p = SdcPeripherals::new(
-        peripherals.PPI_CH17,
-        peripherals.PPI_CH18,
-        peripherals.PPI_CH20,
-        peripherals.PPI_CH21,
-        peripherals.PPI_CH22,
-        peripherals.PPI_CH23,
-        peripherals.PPI_CH24,
-        peripherals.PPI_CH25,
-        peripherals.PPI_CH26,
-        peripherals.PPI_CH27,
-        peripherals.PPI_CH28,
-        peripherals.PPI_CH29,
-    );
-
+) {
     info!("Initializing RNG");
     static RNG: StaticCell<Rng<'static, mode::Async>> = StaticCell::new();
-    let rng = RNG.init(Rng::new(peripherals.RNG, irqs));
+    let rng = RNG.init(Rng::new(rng, irqs));
 
     info!("Initializing SDC Memory");
-    const SDC_MEM_SIZE: usize = 4096;
+    const SDC_MEM_SIZE: usize = 2040;
     static SDC_MEM: StaticCell<nrf_sdc::Mem<SDC_MEM_SIZE>> = StaticCell::new();
     let sdc_mem = SDC_MEM.init(Mem::new());
 
@@ -173,19 +147,17 @@ pub fn start(
     let resources = RESOURCES.init(BleResources::new());
     let stack = STACK.init(trouble_host::new(sdc, resources).set_random_address(address));
 
-    let Host { mut peripheral, mut runner, .. } = stack.build();
+    let Host { peripheral, runner, .. } = stack.build();
 
-    let gatt = unwrap!(PineTimeServer::new_with_config(GapConfig::Peripheral(
-        PeripheralConfig {
-            name: NAME,
-            appearance: &appearance::watch::SMARTWATCH,
-        }
-    ),));
-    static SERVER: StaticCell<PineTimeServer<'static>> = StaticCell::new();
-    let server = SERVER.init(gatt);
+    // let gatt = unwrap!(PineTimeServer::new_with_config(GapConfig::Peripheral(
+    //     PeripheralConfig {
+    //         name: NAME,
+    //         appearance: &appearance::watch::SMARTWATCH,
+    //     }
+    // ),));
+    // static SERVER: StaticCell<PineTimeServer<'static>> = StaticCell::new();
+    // let server = SERVER.init(gatt);
 
     spawner.must_spawn(ble_task(runner));
-    spawner.must_spawn(advertise_task(stack, peripheral, server));//, dfu_config, battery));
-
-    loop {}
+    spawner.must_spawn(advertise_task(peripheral));//(stack, peripheral, server, dfu_config, battery));
 }

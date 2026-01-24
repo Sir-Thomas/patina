@@ -2,19 +2,20 @@ use defmt::{debug, info};
 use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
 use embassy_nrf::{Peri, gpio::{Level, Output, OutputDrive}, peripherals, spim::{self, Spim}, spis};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
-use embassy_time::{Delay, Duration, Timer};
-use embedded_graphics::{pixelcolor::Rgb565, prelude::*, primitives::{Circle, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle}};
+use embassy_time::{Delay, Timer};
+use embedded_graphics::{pixelcolor::Rgb565, prelude::*, primitives::{PrimitiveStyleBuilder, Rectangle}};
 use embedded_layout::align::{Align, horizontal, vertical};
 use embedded_text::TextBox;
 use heapless::String;
 use lcd_async::{Builder, interface::SpiInterface, options::{self, Orientation, Rotation}, raw_framebuf::RawFrameBuf};
 use static_cell::StaticCell;
+use time::Duration;
 
 use crate::{Irqs, time::CURRENT_TIME};
 
 const WIDTH: usize = 240;
 const HEIGHT: usize = 240;
-const FRAMEBUFFER_ROWS: usize = 10;
+const FRAMEBUFFER_ROWS: usize = 12;
 const FRAMEBUFFER_HEIGHT: usize = HEIGHT / FRAMEBUFFER_ROWS;
 const BYTES_PER_PIXEL: usize = 2;
 const FRAMEBUFFER_SIZE: usize = WIDTH * FRAMEBUFFER_HEIGHT * BYTES_PER_PIXEL;
@@ -74,29 +75,12 @@ pub async fn display_task(
     info!("Initializing frame buffer");
     let framebuffer = FRAMEBUFFER.init_with(|| [0; FRAMEBUFFER_SIZE]);
 
-    for i in 0..FRAMEBUFFER_ROWS {
-        let mut fbuf = RawFrameBuf::<Rgb565, _>::new(framebuffer.as_mut_slice(), WIDTH, FRAMEBUFFER_HEIGHT);
-
-        fbuf.clear(Rgb565::RED).unwrap();
-        display
-            .show_raw_data(
-                0, (FRAMEBUFFER_HEIGHT * i) as u16,
-                WIDTH as u16, FRAMEBUFFER_HEIGHT as u16, 
-                framebuffer)
-            .await
-            .unwrap();
-    }
-    info!("Display complete");
-
-    loop {
-        Timer::after_secs(5).await;
-    }
-
-
+    info!("Getting time");
     Timer::after_millis(100).await;
-    let mut previous_time = current_time_watcher.try_get().unwrap();
+    let mut previous_time = current_time_watcher.try_get().unwrap() - Duration::minutes(1);
     let display_area = Rectangle::new(Point::new(0, 0), Size::new(WIDTH as u32, HEIGHT as u32));
 
+    info!("Initializing styles");
     let lg_digit_style = eg_seven_segment::SevenSegmentStyleBuilder::new()
         .digit_size(Size::new(LG_DIGIT_WIDTH, LG_DIGIT_HEIGHT))
         .digit_spacing(LG_DIGIT_SPACING)
@@ -109,92 +93,84 @@ pub async fn display_task(
         .segment_width(SM_SEGMENT_WIDTH)
         .segment_color(Rgb565::GREEN)
         .build();
-    let bg_style = PrimitiveStyleBuilder::new()
-        .fill_color(Rgb565::BLACK)
-        .build();
 
-    let colon_text = TextBox::new(
-        ":",
-        Rectangle::new(Point::zero(), Size::new(LG_SEGMENT_WIDTH, LG_DIGIT_HEIGHT + LG_DIGIT_SPACING)),
-        lg_digit_style
-    );
-    let hour_str = num_to_string(previous_time.hour());
-    let hours_text = TextBox::new(
-        hour_str.as_str(),
-        Rectangle::new(Point::zero(), LG_SIZE),
-        lg_digit_style,
-    );
-    let minute_str = num_to_string(previous_time.minute());
-    let minutes_text = TextBox::new(
-        minute_str.as_str(),
-        Rectangle::new(Point::zero(), LG_SIZE),
-        lg_digit_style,
-    );
-    let second_str = num_to_string(previous_time.second());
-    let seconds_text = TextBox::new(
-        second_str.as_str(),
-        Rectangle::new(Point::zero(), SM_SIZE),
-        sm_digit_style,
-    );
-    let positioned_colon = colon_text.align_to(&display_area, horizontal::Center, vertical::Center);
-    // positioned_colon.draw(&mut display).unwrap();
-    let positioned_seconds = seconds_text.align_to(&display_area, horizontal::Right, vertical::Bottom);
-    // positioned_seconds.draw(&mut display).unwrap();
-    let positioned_minutes = minutes_text.align_to(&display_area, horizontal::Right, vertical::Center);
-    // positioned_minutes.draw(&mut display).unwrap();
-    let positioned_hours = hours_text.align_to(&display_area, horizontal::Left, vertical::Center);
-    // positioned_hours.draw(&mut display).unwrap();
-    
     loop {
         debug!("Updating Display");
-
         let current_time = current_time_watcher.try_get().unwrap();
-
         debug!("Current Time: {:02}:{:02}:{:02}", current_time.hour(), current_time.minute(), current_time.second());
 
-        if current_time.hour() != previous_time.hour() {
+        if current_time.minute() != previous_time.minute() {
+            let colon_text = TextBox::new(
+                ":",
+                Rectangle::new(Point::zero(), Size::new(LG_SEGMENT_WIDTH, LG_DIGIT_HEIGHT + LG_DIGIT_SPACING)),
+                lg_digit_style
+            );
             let hour_str = num_to_string(current_time.hour());
             let hours_text = TextBox::new(
                 hour_str.as_str(),
-                Rectangle::new(Point::new(20, 20), Size::new(LG_DIGIT_WIDTH * 2 + LG_DIGIT_SPACING, LG_DIGIT_HEIGHT + LG_DIGIT_SPACING)),
+                Rectangle::new(Point::zero(), LG_SIZE),
                 lg_digit_style,
             );
-            let background = Rectangle::new(Point::zero(), LG_SIZE).into_styled(bg_style);
-            let positioned_background = background.align_to(&display_area, horizontal::Left, vertical::Center);
-            // positioned_background.draw(&mut display).unwrap();
-            let positioned_hours = hours_text.align_to(&display_area, horizontal::Left, vertical::Center);
-            // positioned_hours.draw(&mut display).unwrap();
-        }
-        if current_time.minute() != previous_time.minute() {
             let minute_str = num_to_string(current_time.minute());
             let minutes_text = TextBox::new(
                 minute_str.as_str(),
-                Rectangle::new(Point::new(20, 20), Size::new(LG_DIGIT_WIDTH * 2 + LG_DIGIT_SPACING, LG_DIGIT_HEIGHT + LG_DIGIT_SPACING)),
+                Rectangle::new(Point::zero(), LG_SIZE),
                 lg_digit_style,
             );
-            let background = Rectangle::new(Point::zero(), LG_SIZE).into_styled(bg_style);
-            let positioned_background = background.align_to(&display_area, horizontal::Right, vertical::Center);
-            // positioned_background.draw(&mut display).unwrap();
-            let positioned_minutes = minutes_text.align_to(&display_area, horizontal::Right, vertical::Center);
-            // positioned_minutes.draw(&mut display).unwrap();
-        }
-        if current_time.second() != previous_time.second() {
             let second_str = num_to_string(current_time.second());
             let seconds_text = TextBox::new(
                 second_str.as_str(),
-                Rectangle::new(Point::new(20, 20), Size::new(SM_DIGIT_WIDTH * 2 + SM_DIGIT_SPACING, SM_DIGIT_HEIGHT + SM_DIGIT_SPACING)),
+                Rectangle::new(Point::zero(), SM_SIZE),
                 sm_digit_style,
             );
-            let background = Rectangle::new(Point::zero(), SM_SIZE).into_styled(bg_style);
-            let positioned_background = background.align_to(&display_area, horizontal::Right, vertical::Bottom);
-            // positioned_background.draw(&mut display).unwrap();
+
+            let positioned_colon = colon_text.align_to(&display_area, horizontal::Center, vertical::Center);
             let positioned_seconds = seconds_text.align_to(&display_area, horizontal::Right, vertical::Bottom);
-            // positioned_seconds.draw(&mut display).unwrap();
+            let positioned_minutes = minutes_text.align_to(&display_area, horizontal::Right, vertical::Center);
+            let positioned_hours = hours_text.align_to(&display_area, horizontal::Left, vertical::Center);
+
+            for i in 0..FRAMEBUFFER_ROWS {
+                let mut fbuf = RawFrameBuf::<Rgb565, _>::new(framebuffer.as_mut_slice(), WIDTH, FRAMEBUFFER_HEIGHT);
+                fbuf.clear(Rgb565::BLACK).unwrap();
+                let mut fbuf = fbuf.translated(Point::new(0, -((FRAMEBUFFER_HEIGHT * i) as i32)));
+                positioned_colon.draw(&mut fbuf).unwrap();
+                positioned_seconds.draw(&mut fbuf).unwrap();
+                positioned_minutes.draw(&mut fbuf).unwrap();
+                positioned_hours.draw(&mut fbuf).unwrap();
+                display.show_raw_data(
+                    0, (FRAMEBUFFER_HEIGHT * i) as u16,
+                    WIDTH as u16, FRAMEBUFFER_HEIGHT as u16,
+                    framebuffer)
+                    .await
+                    .unwrap();
+            }
+            previous_time = current_time;
+        } else if current_time.second() != previous_time.second() {
+            let second_str = num_to_string(current_time.second());
+            let seconds_text = TextBox::new(
+                second_str.as_str(),
+                Rectangle::new(Point::zero(), SM_SIZE),
+                sm_digit_style,
+            );
+
+            let positioned_seconds = seconds_text.align_to(&display_area, horizontal::Right, vertical::Bottom);
+
+            for i in 10..FRAMEBUFFER_ROWS { // TODO: fix hardcoded 10
+                let mut fbuf = RawFrameBuf::<Rgb565, _>::new(framebuffer.as_mut_slice(), WIDTH, FRAMEBUFFER_HEIGHT);
+                fbuf.clear(Rgb565::BLACK).unwrap();
+                let mut fbuf = fbuf.translated(Point::new(0, -((FRAMEBUFFER_HEIGHT * i) as i32)));
+                positioned_seconds.draw(&mut fbuf).unwrap();
+                display.show_raw_data(
+                    0, (FRAMEBUFFER_HEIGHT * i) as u16,
+                    WIDTH as u16, FRAMEBUFFER_HEIGHT as u16,
+                    framebuffer)
+                    .await
+                    .unwrap();
+            }
+            previous_time = current_time;
         }
 
-        previous_time = current_time;
-
-        Timer::after(Duration::from_millis(50)).await;
+        Timer::after_millis(50).await;
     }
 }
 

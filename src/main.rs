@@ -9,6 +9,7 @@ use embassy_nrf::{bind_interrupts, interrupt::Priority, peripherals, rng, saadc,
 use nrf_sdc::mpsl;
 use panic_probe as _;
 
+mod battery;
 mod ble;
 mod button;
 mod display;
@@ -51,6 +52,14 @@ async fn main(spawner: Spawner) {
 
     info!("Spawning watchdog task");
     spawner.spawn(watchdog::watchdog_task()).unwrap();
+
+    info!("Spawning battery task");
+    spawner.spawn(battery::battery_task(
+        p.P0_31,
+        p.SAADC,
+        Irqs,
+        p.P0_12,
+    )).unwrap();
 
     info!("Spawning button task");
     spawner.spawn(button::button_task(

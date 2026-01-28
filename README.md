@@ -14,7 +14,7 @@ probe-rs download bootloader-1.0.1.bin --binary-format Binary --chip nRF52832_xx
 Must be using MCUBoot values for memory.x and VTOR.
 ```
 cargo objcopy --release -- -O binary patina.bin
-scripts/imgtool.py create --header-size 32 --align 4 --version 1.0.0 --slot-size 475136 --pad-header patina.bin patina-image.bin
+scripts/imgtool.py create --header-size 512 --align 4 --version 1.0.0 --slot-size 475136 --pad-header patina.bin patina-image.bin
 probe-rs download --chip nRF52832_xxAA --base-address 0x8000 --binary-format Binary patina-image.bin
 ```
 You must be in the python venv to run the image tool.

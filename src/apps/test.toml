@@ -1,0 +1,17 @@
+[package]
+name = "patina-apps"
+version = "0.1.0"
+
+[dependencies]
+app-framework = { path = "../app-framework" }
+embedded-graphics = "0.8.1"
+
+[features]
+default = ["alarm", "clock", "settings"]
+alarm = []
+stopwatch = []
+clock = []
+settings = []
+game-pong = []
+game-snake = []
+all = ["alarm", "stopwatch", "clock", "settings", "game-pong", "game-snake"]

@@ -152,8 +152,9 @@ impl WatchApp for ClockApp {
                 }
             },
             SystemEvent::ButtonPress => {
-                ctx.turn_off_display();
-                EventResponse::Ignore
+                self.edit_time = false;
+                self.redraw_edit_indicator = true;
+                EventResponse::CloseApp
             }
             _ => EventResponse::Ignore,
         }

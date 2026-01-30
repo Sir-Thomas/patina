@@ -83,6 +83,14 @@ impl AppManager {
         ).await;
             
         match response {
+            EventResponse::CloseApp => {
+                if self.app_id != AppId::Clock {
+                    self.switch_to(AppId::Clock).await;
+                } else {
+                    self.current_app.on_stop(&mut self.context).await;
+                    self.context.turn_off_display();
+                }
+            }
             EventResponse::Rerender => {
                 self.current_app.render(&mut self.context).await;
             }

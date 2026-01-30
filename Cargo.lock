@@ -239,11 +239,12 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "cst816s"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "967157b54d63f79ed49d548182e4bef967145e6627b21d7f67740d0aab243b2e"
+version = "0.1.0"
 dependencies = [
+ "defmt 1.0.1",
+ "embedded-graphics",
  "embedded-hal 1.0.0",
+ "embedded-hal-async",
 ]
 
 [[package]]

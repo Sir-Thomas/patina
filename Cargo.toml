@@ -7,7 +7,7 @@ edition = "2024"
 bt-hci = { version = "0.7.0", default-features = false, features = ["defmt", "embassy-time"] }
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.5"
-cst816s = "1.0.1"
+cst816s = { path = "../cst816s-rs", features = ["defmt"] }
 defmt = "1.0.1"
 defmt-rtt = "1.1.0"
 eg-seven-segment = "0.2.0"
@@ -25,7 +25,7 @@ heapless = { version = "0.9.2", features = ["defmt"] }
 lcd-async = "0.1.1"
 nrf-sdc = { version = "0.4.0", default-features = false, features = ["defmt", "nrf52832", "peripheral"] }
 panic-probe = { version = "1.0.0", features = ["defmt"] }
-pinetime-bsp = { path = "../pinetime-bsp" }
+pinetime-bsp = { path = "../pinetime-bsp", features = ["defmt"] }
 static_cell = "2.1.1"
 time = { version = "0.3.44", default-features = false }
 trouble-host = { version = "0.5.1", features = ["defmt", "gatt", "peripheral"] }

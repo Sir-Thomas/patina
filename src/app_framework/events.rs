@@ -1,4 +1,4 @@
-use embedded_graphics::prelude::Point;
+use cst816s::TouchEvent;
 
 use crate::apps::AppId;
 
@@ -6,26 +6,9 @@ use crate::apps::AppId;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
 pub enum SystemEvent {
     ButtonPress,
-    Touch(TouchAction),
+    Touch(TouchEvent),
     ScreenTimeout,
     Tick,
-}
-
-#[allow(unused)] // TODO: Remove these allows
-#[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
-pub enum TouchAction {
-    Down(Point),
-    Up(Point),
-    Swipe(Direction),
-}
-
-#[allow(unused)] // TODO: Remove these allows
-#[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
-pub enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
 }
 
 #[allow(unused)] // TODO: Remove these allows

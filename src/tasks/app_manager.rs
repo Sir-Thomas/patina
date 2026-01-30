@@ -21,7 +21,9 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     app_manager.init().await;
     info!("[App Manager] Spawning button task");
     spawner.must_spawn(tasks::button::button_task(board.button));
-    info!("Spawning display timeout task");
+    info!("[App Manager] Spawning touch task");
+    spawner.must_spawn(tasks::touch::touch_task(board.touchscreen));
+    info!("[App Manager] Spawning display timeout task");
     spawner.must_spawn(tasks::display_timeout::display_timeout_task());
     info!("[App Manager] Starting event loop");
 

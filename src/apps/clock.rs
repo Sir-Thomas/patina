@@ -88,6 +88,9 @@ impl WatchApp for ClockApp {
     
     async fn on_start(&mut self, ctx: &mut AppContext) {
         info!("[Clock App]Starting Clock App");
+        self.update_hours = true;
+        self.update_minutes = true;
+        self.update_seconds = true;
         self.current_time = ctx.time();
         debug!(
             "[Clock App]Current Time: {:02}:{:02}:{:02}",

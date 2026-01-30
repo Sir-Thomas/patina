@@ -59,13 +59,17 @@ impl AppManager {
 
     async fn handle_event(&mut self, event: SystemEvent) {
         if self.context.display_is_off() && event == SystemEvent::ButtonPress {
-            self.context.turn_on_display();
+            self.current_app.on_start(&mut self.context).await;
             self.current_app.render(&mut self.context).await;
+            self.context.turn_on_display();
+            REFRESH_TIMEOUT.signal(());
             return;
         }
 
+        // TODO: Consider changing ux so button always goes back to clock
         match event {
             SystemEvent::ScreenTimeout => {
+                self.current_app.on_stop(&mut self.context).await;
                 self.context.turn_off_display();
                 return;
             },

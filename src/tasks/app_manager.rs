@@ -69,7 +69,11 @@ impl AppManager {
                 self.context.turn_off_display();
                 return;
             },
-            SystemEvent::Tick => {},
+            SystemEvent::Tick => {
+                if self.context.display_is_off() {
+                    return;
+                }
+            },
             _ => REFRESH_TIMEOUT.signal(()),
         }
             

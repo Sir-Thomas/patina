@@ -42,21 +42,21 @@ macro_rules! define_apps {
                 }
             }
             
-            pub fn on_start(&mut self, ctx: &mut AppContext) {
+            pub async fn on_start(&mut self, ctx: &mut AppContext) {
                 match self {
-                    $(AppInstance::$id(app) => app.on_start(ctx),)*
+                    $(AppInstance::$id(app) => app.on_start(ctx).await,)*
                 }
             }
             
-            pub fn on_stop(&mut self, ctx: &mut AppContext) {
+            pub async fn on_stop(&mut self, ctx: &mut AppContext) {
                 match self {
-                    $(AppInstance::$id(app) => app.on_stop(ctx),)*
+                    $(AppInstance::$id(app) => app.on_stop(ctx).await,)*
                 }
             }
             
-            pub fn on_event(&mut self, event: SystemEvent, ctx: &mut AppContext) -> EventResponse {
+            pub async fn on_event(&mut self, event: SystemEvent, ctx: &mut AppContext) -> EventResponse {
                 match self {
-                    $(AppInstance::$id(app) => app.on_event(event, ctx),)*
+                    $(AppInstance::$id(app) => app.on_event(event, ctx).await,)*
                 }
             }
             

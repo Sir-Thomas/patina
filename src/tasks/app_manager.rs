@@ -51,7 +51,7 @@ impl AppManager {
     async fn init(&mut self) {
         self.context.clear_display().await;
         self.context.turn_on_display();
-        self.current_app.on_start(&mut self.context);
+        self.current_app.on_start(&mut self.context).await;
         self.current_app.render(&mut self.context).await;
     }
 
@@ -74,7 +74,7 @@ impl AppManager {
         let response = self.current_app.on_event(
             event, 
             &mut self.context
-        );
+        ).await;
             
         match response {
             EventResponse::Rerender => {
@@ -88,10 +88,10 @@ impl AppManager {
     }
     
     async fn switch_to(&mut self, new_id: AppId) {
-        self.current_app.on_stop(&mut self.context);
+        self.current_app.on_stop(&mut self.context).await;
         self.current_app = AppInstance::new(new_id);
         self.app_id = new_id;
-        self.current_app.on_start(&mut self.context);
+        self.current_app.on_start(&mut self.context).await;
         self.current_app.render(&mut self.context).await;
     }
 }

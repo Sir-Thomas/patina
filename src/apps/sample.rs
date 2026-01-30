@@ -14,15 +14,15 @@ impl WatchApp for SampleApp {
         SampleApp {}
     }
 
-    fn on_start(&mut self, _ctx: &mut AppContext) {
+    async fn on_start(&mut self, _ctx: &mut AppContext) {
         // Initialize app state
     }
     
-    fn on_stop(&mut self, _ctx: &mut AppContext) {
+    async fn on_stop(&mut self, _ctx: &mut AppContext) {
         // Clean up app state
     }
 
-    fn on_event(&mut self, event: SystemEvent, _ctx: &mut AppContext) -> EventResponse{
+    async fn on_event(&mut self, event: SystemEvent, _ctx: &mut AppContext) -> EventResponse{
         match event {
             SystemEvent::ButtonPress => {
                 // Do something

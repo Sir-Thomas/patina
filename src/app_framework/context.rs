@@ -1,5 +1,7 @@
 use defmt::info;
 use embassy_sync::watch::DynAnonReceiver;
+use embassy_time::Duration;
+use pinetime_bsp::vibrator::Vibrator;
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
 use time::OffsetDateTime;
 
@@ -11,16 +13,22 @@ pub struct AppContext {
     current_time_watcher: DynAnonReceiver<'static, OffsetDateTime>,
     display: DisplayController,
     screen_on: bool,
+    vibrator: Vibrator,
 }
 
 impl AppContext {
-    pub fn new(backlight: BacklightController, display: DisplayController) -> Self {
+    pub fn new(
+        backlight: BacklightController,
+        display: DisplayController,
+        vibrator: Vibrator,
+    ) -> Self {
         let current_time_watcher = CURRENT_TIME.dyn_anon_receiver();
         Self {
             backlight,
             current_time_watcher,
             display,
             screen_on: true,
+            vibrator,
         }
     }
 
@@ -77,5 +85,9 @@ impl AppContext {
         let mut current_time = self.time();
         current_time = current_time.truncate_to_minute();
         self.set_time(current_time);
+    }
+
+    pub async fn short_vibration(&mut self) {
+        self.vibrator.pulse(Duration::from_millis(15)).await;
     }
 }

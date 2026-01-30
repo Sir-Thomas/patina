@@ -143,6 +143,7 @@ impl WatchApp for ClockApp {
                     TouchGesture::LongPress => {
                         self.redraw_edit_indicator = true;
                         self.edit_time = !self.edit_time;
+                        ctx.short_vibration().await;
                         EventResponse::Rerender
                     }
                     TouchGesture::Tap => {
@@ -150,6 +151,7 @@ impl WatchApp for ClockApp {
                             return EventResponse::Ignore;
                         }
                         self.adjust_time(event.location, ctx);
+                        ctx.short_vibration().await;
                         EventResponse::Rerender
                     }
                     _ => EventResponse::Ignore,

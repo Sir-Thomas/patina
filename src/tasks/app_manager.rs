@@ -7,6 +7,7 @@ use embassy_executor::Spawner;
 use pinetime_bsp::PineTime;
 use pinetime_bsp::backlight::BacklightController;
 use pinetime_bsp::display::DisplayController;
+use pinetime_bsp::vibrator::Vibrator;
 
 use crate::signals::{EVENT_QUEUE, REFRESH_TIMEOUT};
 
@@ -15,7 +16,7 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     info!("[App Manager] Creating event receiver");
     let receiver = EVENT_QUEUE.receiver();
     info!("[App Manager] Initializing App Manager");
-    let mut app_manager = AppManager::new(board.backlight, board.display);
+    let mut app_manager = AppManager::new(board.backlight, board.display, board.vibrator);
     // Wait for first systick to ensure clock is available
     receiver.receive().await;
     app_manager.init().await;
@@ -41,11 +42,19 @@ struct AppManager {
 }
 
 impl AppManager {
-    fn new(backlight: BacklightController, display: DisplayController) -> Self {
+    fn new(
+        backlight: BacklightController,
+        display: DisplayController,
+        vibrator: Vibrator,
+    ) -> Self {
         let app_id = AppId::Clock;
         Self {
             app_id,
-            context: AppContext::new(backlight, display),
+            context: AppContext::new(
+                backlight,
+                display,
+                vibrator,
+            ),
             current_app: AppInstance::new(app_id),
         }
     }

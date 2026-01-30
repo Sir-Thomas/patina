@@ -3,6 +3,7 @@ use embassy_time::{Duration, Timer};
 
 use crate::{app_framework::SystemEvent, signals::{EVENT_QUEUE, REFRESH_TIMEOUT, TIMEOUT_DISPLAY}};
 
+// TODO: Rewrite this whole thing. It is clunky and error prone.
 #[embassy_executor::task]
 pub async fn display_timeout_task() {
     const TIMEOUT_DURATION: Duration = Duration::from_secs(10);

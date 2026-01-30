@@ -25,7 +25,7 @@ async fn main(spawner: Spawner) {
 
     info!("Initializing PineTime");
     let mut config = embassy_nrf::config::Config::default();
-    config.lfclk_source = embassy_nrf::config::LfclkSource::InternalRC;
+    config.lfclk_source = embassy_nrf::config::LfclkSource::ExternalXtal;
     config.gpiote_interrupt_priority = Priority::P2;
     config.time_interrupt_priority = Priority::P2;
     let board = PineTime::new(config).await;

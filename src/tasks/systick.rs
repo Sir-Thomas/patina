@@ -22,7 +22,7 @@ pub async fn systick_task() {
         let result = ADJUST_TIME.wait().with_timeout(SYSTICK_DURATION).await;
         if let Some(new_time) = result.ok() {
             debug!("[Systick] Adjusting time to: {:?}", new_time);
-            // TODO: This will panic after approximately 3 years of uptime due to i64 overflow
+            // FIXME: This will panic after approximately 3 years of uptime due to i64 overflow
             boot_time = new_time - time::Duration::milliseconds(Instant::now().as_millis().try_into().unwrap());
         }
     }

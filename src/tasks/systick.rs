@@ -4,7 +4,7 @@ use time::OffsetDateTime;
 
 use crate::{app_framework::events::SystemEvent, signals::{CURRENT_TIME, EVENT_QUEUE}};
 
-const SYSTICK_DURATION: Duration = Duration::from_millis(50);
+const SYSTICK_DURATION: Duration = Duration::from_millis(1000);
 const BOOT_TICKS: embassy_time::Instant = embassy_time::Instant::MIN;
 
 #[embassy_executor::task]

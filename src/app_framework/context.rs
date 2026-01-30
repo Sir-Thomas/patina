@@ -75,7 +75,7 @@ impl AppContext {
 
     pub fn reset_seconds(&mut self) {
         let mut current_time = self.time();
-        current_time = current_time.replace_second(0).unwrap();
+        current_time = current_time.truncate_to_minute();
         self.set_time(current_time);
     }
 }

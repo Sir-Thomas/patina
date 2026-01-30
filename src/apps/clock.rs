@@ -108,7 +108,8 @@ impl WatchApp for ClockApp {
     }
     
     async fn on_stop(&mut self, _ctx: &mut AppContext) {
-        // Clean up clock app state
+        self.edit_time = false;
+        self.redraw_edit_indicator = true;
     }
 
     async fn on_event(&mut self, event: SystemEvent, ctx: &mut AppContext) -> EventResponse {
@@ -155,8 +156,6 @@ impl WatchApp for ClockApp {
                 }
             },
             SystemEvent::ButtonPress => {
-                self.edit_time = false;
-                self.redraw_edit_indicator = true;
                 EventResponse::CloseApp
             }
             _ => EventResponse::Ignore,

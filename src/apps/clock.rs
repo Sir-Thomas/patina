@@ -167,7 +167,7 @@ impl WatchApp for ClockApp {
         info!("[Clock App] Rendering Clock");
         if self.update_hours {
             info!("[Clock App] Updating Hours");
-            let hour_str = num_to_string(self.current_time.hour());
+            let hour_str = hour_to_string(self.current_time.hour());
             let hours_text = TextBox::new(
                 hour_str.as_str(),
                 Rectangle::new(Point::zero(), LG_SIZE),
@@ -220,4 +220,11 @@ fn num_to_string(num: u8) -> String<2> {
     num_string.push(char::from_digit(tens as u32, 10).unwrap()).unwrap();
     num_string.push(char::from_digit(units as u32, 10).unwrap()).unwrap();
     num_string
+}
+
+fn hour_to_string(hour: u8) -> String<2> {
+    match hour % 12 {
+        0 => num_to_string(12),
+        display_hour => num_to_string(display_hour),
+    }
 }

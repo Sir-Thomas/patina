@@ -1,6 +1,7 @@
 use cst816s::TouchGesture;
 use defmt::{debug, info};
 use eg_seven_segment::SevenSegmentStyle;
+use embedded_graphics::primitives::{Circle, PrimitiveStyle};
 use embedded_text::TextBox;
 use time::{Duration, OffsetDateTime};
 use embedded_layout::prelude::*;
@@ -28,21 +29,28 @@ pub struct ClockApp{
     update_minutes: bool,
     update_seconds: bool,
     edit_time: bool,
+    redraw_edit_indicator: bool,
 }
 
 impl ClockApp {
     fn adjust_time(&mut self, location: Point, ctx: &mut AppContext) {
         if location.x >= 190 && location.y >= 190 {
+            self.update_seconds = true;
             ctx.reset_seconds();
         } else if location.x <= 120 && location.y <= 120 {
+            self.update_hours = true;
             ctx.adjust_time(Duration::HOUR);
         } else if location.x <= 120 && location.y > 120 {
+            self.update_hours = true;
             ctx.adjust_time(-Duration::HOUR);
         } else if location.x > 120 && location.y <= 120 {
+            self.update_minutes = true;
             ctx.adjust_time(Duration::MINUTE);
         } else if location.x > 120 && location.y > 120 {
+            self.update_minutes = true;
             ctx.adjust_time(-Duration::MINUTE);
         }
+        self.current_time = ctx.time();
     }
 }
 
@@ -67,13 +75,14 @@ impl WatchApp for ClockApp {
             lg_digit_style,
             sm_digit_style,
             display_area: Rectangle::new(
-                Point::zero(),
-                Size::new(240, 240),
+                Point::new(5, 5),
+                Size::new(230, 230),
             ),
             update_hours: true,
             update_minutes: true,
             update_seconds: true,
             edit_time: false,
+            redraw_edit_indicator: false,
         }
     }
     
@@ -117,14 +126,18 @@ impl WatchApp for ClockApp {
                 }
                 if self.current_time.second() != self.previous_time.second() {
                     self.update_seconds = true;
-                    self.previous_time = self.current_time;
-                    return EventResponse::Rerender;
                 }
-                EventResponse::Ignore
+                if self.update_hours || self.update_minutes || self.update_seconds {
+                    self.previous_time = self.current_time;
+                    EventResponse::Rerender
+                } else {
+                    EventResponse::Ignore
+                }
             },
             SystemEvent::Touch(event) => {
                 match event.gesture {
                     TouchGesture::LongPress => {
+                        self.redraw_edit_indicator = true;
                         self.edit_time = !self.edit_time;
                         EventResponse::Rerender
                     }
@@ -147,8 +160,9 @@ impl WatchApp for ClockApp {
     }
 
     async fn render(&mut self, ctx: &mut AppContext) {
+        info!("[Clock App] Rendering Clock");
         if self.update_hours {
-            debug!("[Clock App] Updating Hours");
+            info!("[Clock App] Updating Hours");
             let hour_str = num_to_string(self.current_time.hour());
             let hours_text = TextBox::new(
                 hour_str.as_str(),
@@ -160,7 +174,7 @@ impl WatchApp for ClockApp {
             self.update_hours = false;
         }
         if self.update_minutes {
-            debug!("[Clock App] Updating Minutes");
+            info!("[Clock App] Updating Minutes");
             let minute_str = num_to_string(self.current_time.minute());
             let minutes_text = TextBox::new(
                 minute_str.as_str(),
@@ -172,7 +186,7 @@ impl WatchApp for ClockApp {
             self.update_minutes = false;
         }
         if self.update_seconds {
-            debug!("[Clock App] Updating Seconds");
+            info!("[Clock App] Updating Seconds");
             {
                 let second_str = num_to_string(self.current_time.second());
                 let seconds_text = TextBox::new(
@@ -183,6 +197,14 @@ impl WatchApp for ClockApp {
                 let positioned_seconds = seconds_text.align_to(&self.display_area, horizontal::Right, vertical::Bottom);
                 ctx.draw(&positioned_seconds, positioned_seconds.bounding_box(), Rgb565::BLACK).await;
             }
+            self.update_seconds = false;
+        }
+        if self.redraw_edit_indicator {
+            let circle = Circle::new(Point::zero(), 40)
+                .into_styled(PrimitiveStyle::with_fill(if self.edit_time { Rgb565::GREEN } else { Rgb565::BLACK }))
+                .align_to(&self.display_area, horizontal::Left, vertical::Bottom);
+            ctx.draw(&circle, circle.bounding_box(), Rgb565::BLACK).await;
+            self.redraw_edit_indicator = false;
         }
     }
 }

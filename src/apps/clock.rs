@@ -1,3 +1,4 @@
+use cst816s::TouchGesture;
 use defmt::{debug, info};
 use eg_seven_segment::SevenSegmentStyle;
 use embedded_text::TextBox;
@@ -23,6 +24,26 @@ pub struct ClockApp{
     lg_digit_style: SevenSegmentStyle<Rgb565>,
     sm_digit_style: SevenSegmentStyle<Rgb565>,
     display_area: Rectangle,
+    update_hours: bool,
+    update_minutes: bool,
+    update_seconds: bool,
+    edit_time: bool,
+}
+
+impl ClockApp {
+    fn adjust_time(&mut self, location: Point, ctx: &mut AppContext) {
+        if location.x >= 190 && location.y >= 190 {
+            ctx.reset_seconds();
+        } else if location.x <= 120 && location.y <= 120 {
+            ctx.adjust_time(Duration::HOUR);
+        } else if location.x <= 120 && location.y > 120 {
+            ctx.adjust_time(-Duration::HOUR);
+        } else if location.x > 120 && location.y <= 120 {
+            ctx.adjust_time(Duration::MINUTE);
+        } else if location.x > 120 && location.y > 120 {
+            ctx.adjust_time(-Duration::MINUTE);
+        }
+    }
 }
 
 impl WatchApp for ClockApp {
@@ -42,42 +63,80 @@ impl WatchApp for ClockApp {
         
         ClockApp {
             current_time: OffsetDateTime::UNIX_EPOCH,
-            previous_time: OffsetDateTime::UNIX_EPOCH - Duration::MINUTE,
+            previous_time: OffsetDateTime::UNIX_EPOCH,
             lg_digit_style,
             sm_digit_style,
             display_area: Rectangle::new(
                 Point::zero(),
                 Size::new(240, 240),
             ),
+            update_hours: true,
+            update_minutes: true,
+            update_seconds: true,
+            edit_time: false,
         }
     }
     
-    fn on_start(&mut self, ctx: &mut AppContext) {
+    async fn on_start(&mut self, ctx: &mut AppContext) {
         info!("[Clock App]Starting Clock App");
-        self.current_time = ctx.get_time();
+        self.current_time = ctx.time();
         debug!(
             "[Clock App]Current Time: {:02}:{:02}:{:02}",
             self.current_time.hour(),
             self.current_time.minute(),
             self.current_time.second()
         );
+        let colon_text = TextBox::new(
+            ":",
+            Rectangle::new(Point::zero(), Size::new(LG_SEGMENT_WIDTH, LG_DIGIT_HEIGHT + LG_DIGIT_SPACING)),
+            self.lg_digit_style
+        );
+        let positioned_colon = colon_text.align_to(&self.display_area, horizontal::Center, vertical::Center);
+        ctx.draw(&positioned_colon, positioned_colon.bounding_box(), Rgb565::BLACK).await;
     }
     
-    fn on_stop(&mut self, _ctx: &mut AppContext) {
+    async fn on_stop(&mut self, _ctx: &mut AppContext) {
         // Clean up clock app state
     }
 
-    fn on_event(&mut self, event: SystemEvent, ctx: &mut AppContext) -> EventResponse {
+    async fn on_event(&mut self, event: SystemEvent, ctx: &mut AppContext) -> EventResponse {
         match event {
             SystemEvent::Tick => {
-                self.current_time = ctx.get_time();
+                self.current_time = ctx.time();
                 debug!(
                     "[Clock App]Current Time: {:02}:{:02}:{:02}",
                     self.current_time.hour(),
                     self.current_time.minute(),
                     self.current_time.second()
                 );
-                EventResponse::Rerender
+                if self.current_time.hour() != self.previous_time.hour() {
+                    self.update_hours = true;
+                }
+                if self.current_time.minute() != self.previous_time.minute() {
+                    self.update_minutes = true;
+                }
+                if self.current_time.second() != self.previous_time.second() {
+                    self.update_seconds = true;
+                    self.previous_time = self.current_time;
+                    return EventResponse::Rerender;
+                }
+                EventResponse::Ignore
+            },
+            SystemEvent::Touch(event) => {
+                match event.gesture {
+                    TouchGesture::LongPress => {
+                        self.edit_time = !self.edit_time;
+                        EventResponse::Rerender
+                    }
+                    TouchGesture::Tap => {
+                        if !self.edit_time {
+                            return EventResponse::Ignore;
+                        }
+                        self.adjust_time(event.location, ctx);
+                        EventResponse::Rerender
+                    }
+                    _ => EventResponse::Ignore,
+                }
             },
             SystemEvent::ButtonPress => {
                 ctx.turn_off_display();
@@ -88,37 +147,32 @@ impl WatchApp for ClockApp {
     }
 
     async fn render(&mut self, ctx: &mut AppContext) {
-        if self.current_time.minute() != self.previous_time.minute() {
+        if self.update_hours {
+            debug!("[Clock App] Updating Hours");
+            let hour_str = num_to_string(self.current_time.hour());
+            let hours_text = TextBox::new(
+                hour_str.as_str(),
+                Rectangle::new(Point::zero(), LG_SIZE),
+                self.lg_digit_style,
+            );
+            let positioned_hours = hours_text.align_to(&self.display_area, horizontal::Left, vertical::Center);
+            ctx.draw(&positioned_hours, positioned_hours.bounding_box(), Rgb565::BLACK).await;
+            self.update_hours = false;
+        }
+        if self.update_minutes {
             debug!("[Clock App] Updating Minutes");
-            {
-                let colon_text = TextBox::new(
-                    ":",
-                    Rectangle::new(Point::zero(), Size::new(LG_SEGMENT_WIDTH, LG_DIGIT_HEIGHT + LG_DIGIT_SPACING)),
-                    self.lg_digit_style
-                );
-                let positioned_colon = colon_text.align_to(&self.display_area, horizontal::Center, vertical::Center);
-                ctx.draw(&positioned_colon, positioned_colon.bounding_box(), Rgb565::BLACK).await;
-            }
-            {
-                let hour_str = num_to_string(self.current_time.hour());
-                let hours_text = TextBox::new(
-                    hour_str.as_str(),
-                    Rectangle::new(Point::zero(), LG_SIZE),
-                    self.lg_digit_style,
-                );
-                let positioned_hours = hours_text.align_to(&self.display_area, horizontal::Left, vertical::Center);
-                ctx.draw(&positioned_hours, positioned_hours.bounding_box(), Rgb565::BLACK).await;
-            }
-            {
-                let minute_str = num_to_string(self.current_time.minute());
-                let minutes_text = TextBox::new(
-                    minute_str.as_str(),
-                    Rectangle::new(Point::zero(), LG_SIZE),
-                    self.lg_digit_style,
-                );
-                let positioned_minutes = minutes_text.align_to(&self.display_area, horizontal::Right, vertical::Center);
-                ctx.draw(&positioned_minutes, positioned_minutes.bounding_box(), Rgb565::BLACK).await;
-            }
+            let minute_str = num_to_string(self.current_time.minute());
+            let minutes_text = TextBox::new(
+                minute_str.as_str(),
+                Rectangle::new(Point::zero(), LG_SIZE),
+                self.lg_digit_style,
+            );
+            let positioned_minutes = minutes_text.align_to(&self.display_area, horizontal::Right, vertical::Center);
+            ctx.draw(&positioned_minutes, positioned_minutes.bounding_box(), Rgb565::BLACK).await;
+            self.update_minutes = false;
+        }
+        if self.update_seconds {
+            debug!("[Clock App] Updating Seconds");
             {
                 let second_str = num_to_string(self.current_time.second());
                 let seconds_text = TextBox::new(
@@ -129,19 +183,6 @@ impl WatchApp for ClockApp {
                 let positioned_seconds = seconds_text.align_to(&self.display_area, horizontal::Right, vertical::Bottom);
                 ctx.draw(&positioned_seconds, positioned_seconds.bounding_box(), Rgb565::BLACK).await;
             }
-            self.previous_time = self.current_time;
-        } else if self.current_time.second() != self.previous_time.second() {
-            debug!("[Clock App] Updating Seconds");
-            let second_str = num_to_string(self.current_time.second());
-            let seconds_text = TextBox::new(
-                second_str.as_str(),
-                Rectangle::new(Point::zero(), SM_SIZE),
-                self.sm_digit_style,
-            );
-            let positioned_seconds = seconds_text.align_to(&self.display_area, horizontal::Right, vertical::Bottom);
-            ctx.draw(&positioned_seconds, positioned_seconds.bounding_box(), Rgb565::BLACK).await;
-            
-            self.previous_time = self.current_time;
         }
     }
 }

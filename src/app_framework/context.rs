@@ -3,7 +3,7 @@ use embassy_sync::watch::DynAnonReceiver;
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
 use time::OffsetDateTime;
 
-use crate::signals::{CURRENT_TIME, TIMEOUT_DISPLAY};
+use crate::signals::{ADJUST_TIME, CURRENT_TIME, TIMEOUT_DISPLAY};
 use crate::app_framework::prelude::*;
 
 pub struct AppContext {
@@ -59,8 +59,23 @@ impl AppContext {
         self.display.draw(drawable, bounds, background).await;
     }
 
-    pub fn get_time(&mut self) -> OffsetDateTime {
+    pub fn time(&mut self) -> OffsetDateTime {
         let current_time = self.current_time_watcher.try_get().unwrap();
         current_time
+    }
+
+    pub fn set_time(&mut self, new_time: OffsetDateTime) {
+        ADJUST_TIME.signal(new_time);
+    }
+
+    pub fn adjust_time(&mut self, delta: time::Duration) {
+        let new_time = self.time() + delta;
+        ADJUST_TIME.signal(new_time);
+    }
+
+    pub fn reset_seconds(&mut self) {
+        let mut current_time = self.time();
+        current_time = current_time.replace_second(0).unwrap();
+        self.set_time(current_time);
     }
 }

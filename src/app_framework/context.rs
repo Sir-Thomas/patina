@@ -36,20 +36,20 @@ impl AppContext {
         !self.screen_on
     }
 
-    pub fn turn_on_display(&mut self) {
+    pub async fn turn_on_display(&mut self) {
         info!("[Context] Turning on display");
         CHANGE_DISPLAY_STATE.signal(true);
         self.screen_on = true;
         self.backlight.enable();
-        // self.display.turn_on(); TODO: implement display power control
+        self.display.wake().await;
     }
 
-    pub fn turn_off_display(&mut self) {
+    pub async fn turn_off_display(&mut self) {
         info!("[Context] Turning off display");
         CHANGE_DISPLAY_STATE.signal(false);
         self.screen_on = false;
         self.backlight.disable();
-        // self.display.turn_off(); TODO: implement display power control
+        self.display.sleep().await;
     }
 
     pub async fn clear_display(&mut self) {

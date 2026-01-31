@@ -61,7 +61,7 @@ impl AppManager {
 
     async fn init(&mut self) {
         self.context.clear_display().await;
-        self.context.turn_on_display();
+        self.context.turn_on_display().await;
         self.current_app.on_start(&mut self.context).await;
         self.current_app.render(&mut self.context).await;
     }
@@ -69,9 +69,9 @@ impl AppManager {
     async fn handle_event(&mut self, event: SystemEvent) {
         if self.context.display_is_off() {
             if event == SystemEvent::ButtonPress {
+                self.context.turn_on_display().await;
                 self.current_app.on_start(&mut self.context).await;
                 self.current_app.render(&mut self.context).await;
-                self.context.turn_on_display();
                 REFRESH_TIMEOUT.signal(());
             }
             return;
@@ -81,7 +81,7 @@ impl AppManager {
         match event {
             SystemEvent::ScreenTimeout => {
                 self.current_app.on_stop(&mut self.context).await;
-                self.context.turn_off_display();
+                self.context.turn_off_display().await;
                 return;
             },
             _ => REFRESH_TIMEOUT.signal(()),
@@ -98,7 +98,7 @@ impl AppManager {
                     self.switch_to(AppId::Clock).await;
                 } else {
                     self.current_app.on_stop(&mut self.context).await;
-                    self.context.turn_off_display();
+                    self.context.turn_off_display().await;
                 }
             }
             EventResponse::Rerender => {

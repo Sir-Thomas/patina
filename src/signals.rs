@@ -11,4 +11,4 @@ const EVENT_QUEUE_SIZE: usize = 5;
 pub static EVENT_QUEUE: Channel<ThreadModeRawMutex, SystemEvent, EVENT_QUEUE_SIZE> = Channel::new();
 
 pub static REFRESH_TIMEOUT: Signal<ThreadModeRawMutex, ()> = Signal::new();
-pub static TIMEOUT_DISPLAY: Signal<ThreadModeRawMutex, bool> = Signal::new();
+pub static CHANGE_DISPLAY_STATE: Signal<ThreadModeRawMutex, bool> = Signal::new();

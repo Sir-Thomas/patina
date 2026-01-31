@@ -5,7 +5,7 @@ use pinetime_bsp::vibrator::Vibrator;
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
 use time::OffsetDateTime;
 
-use crate::signals::{ADJUST_TIME, CURRENT_TIME, TIMEOUT_DISPLAY};
+use crate::signals::{ADJUST_TIME, CURRENT_TIME, CHANGE_DISPLAY_STATE};
 use crate::app_framework::prelude::*;
 
 pub struct AppContext {
@@ -38,7 +38,7 @@ impl AppContext {
 
     pub fn turn_on_display(&mut self) {
         info!("[Context] Turning on display");
-        TIMEOUT_DISPLAY.signal(true);
+        CHANGE_DISPLAY_STATE.signal(true);
         self.screen_on = true;
         self.backlight.enable();
         // self.display.turn_on(); TODO: implement display power control
@@ -46,7 +46,7 @@ impl AppContext {
 
     pub fn turn_off_display(&mut self) {
         info!("[Context] Turning off display");
-        TIMEOUT_DISPLAY.signal(false);
+        CHANGE_DISPLAY_STATE.signal(false);
         self.screen_on = false;
         self.backlight.disable();
         // self.display.turn_off(); TODO: implement display power control

@@ -238,8 +238,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
-name = "cst816s"
+name = "cst816s-async"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0783c42b72fe33e1a5d890970983516108013ec0959e6c8ad2cc370e5d1c4a0e"
 dependencies = [
  "defmt 1.0.1",
  "embedded-graphics",
@@ -1147,7 +1149,6 @@ dependencies = [
  "bt-hci",
  "cortex-m",
  "cortex-m-rt",
- "cst816s",
  "defmt 1.0.1",
  "defmt-rtt",
  "eg-seven-segment",
@@ -1232,7 +1233,7 @@ name = "pinetime-bsp"
 version = "0.1.0"
 dependencies = [
  "bma425",
- "cst816s",
+ "cst816s-async",
  "defmt 1.0.1",
  "embassy-embedded-hal",
  "embassy-nrf",

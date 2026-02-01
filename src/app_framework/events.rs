@@ -1,4 +1,4 @@
-use cst816s::TouchEvent;
+use pinetime_bsp::touch::TouchEvent;
 
 use crate::apps::AppId;
 

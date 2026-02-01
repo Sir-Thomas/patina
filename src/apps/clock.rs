@@ -1,8 +1,8 @@
-use cst816s::TouchGesture;
 use defmt::{debug, info};
 use eg_seven_segment::SevenSegmentStyle;
 use embedded_graphics::primitives::{Circle, PrimitiveStyle};
 use embedded_text::TextBox;
+use pinetime_bsp::touch::TouchGesture;
 use time::{Duration, OffsetDateTime};
 use embedded_layout::prelude::*;
 

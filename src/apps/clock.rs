@@ -6,7 +6,7 @@ use pinetime_bsp::touch::TouchGesture;
 use time::{Duration, OffsetDateTime};
 use embedded_layout::prelude::*;
 
-use crate::app_framework::prelude::*;
+use crate::{app_framework::prelude::*, apps::AppId};
 
 const LG_DIGIT_HEIGHT: u32 = 120;
 const LG_DIGIT_WIDTH: u32 = 45;
@@ -153,6 +153,9 @@ impl WatchApp for ClockApp {
                         self.adjust_time(event.location, ctx);
                         ctx.short_vibration().await;
                         EventResponse::Rerender
+                    }
+                    TouchGesture::SwipeDown => {
+                        EventResponse::SwitchApp(AppId::Flashlight)
                     }
                     _ => EventResponse::Ignore,
                 }

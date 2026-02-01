@@ -2,16 +2,14 @@ use pinetime_bsp::touch::TouchEvent;
 
 use crate::apps::AppId;
 
-#[allow(unused)] // TODO: Remove these allows
 #[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
 pub enum SystemEvent {
-    ButtonPress,
+    ButtonPress, // TODO: Deprecate. Button press never handled by app
     Touch(TouchEvent),
-    ScreenTimeout,
+    ScreenTimeout, // TODO: Decide how timeout is handled.
     Tick,
 }
 
-#[allow(unused)] // TODO: Remove these allows
 #[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
 pub enum EventResponse {
     CloseApp,

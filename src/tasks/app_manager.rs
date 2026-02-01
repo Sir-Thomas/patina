@@ -77,13 +77,16 @@ impl AppManager {
             return;
         }
 
-        // TODO: Consider changing ux so button always goes back to clock
         match event {
             SystemEvent::ScreenTimeout => {
                 self.current_app.on_stop(&mut self.context).await;
                 self.context.turn_off_display().await;
                 return;
             },
+            SystemEvent::ButtonPress => {
+                self.close_current_app().await;
+                return;
+            }
             SystemEvent::Tick => {},
             _ => REFRESH_TIMEOUT.signal(()),
         }
@@ -95,12 +98,7 @@ impl AppManager {
             
         match response {
             EventResponse::CloseApp => {
-                if self.app_id != AppId::Clock {
-                    self.switch_to(AppId::Clock).await;
-                } else {
-                    self.current_app.on_stop(&mut self.context).await;
-                    self.context.turn_off_display().await;
-                }
+                self.close_current_app().await;
             }
             EventResponse::Rerender => {
                 self.current_app.render(&mut self.context).await;
@@ -118,5 +116,15 @@ impl AppManager {
         self.app_id = new_id;
         self.current_app.on_start(&mut self.context).await;
         self.current_app.render(&mut self.context).await;
+    }
+
+    async fn close_current_app(&mut self) {
+        self.context.clear_display().await;
+        if self.app_id != AppId::Clock {
+            self.switch_to(AppId::Clock).await;
+        } else {
+            self.current_app.on_stop(&mut self.context).await;
+            self.context.turn_off_display().await;
+        }
     }
 }

@@ -157,9 +157,6 @@ impl WatchApp for ClockApp {
                     _ => EventResponse::Ignore,
                 }
             },
-            SystemEvent::ButtonPress => {
-                EventResponse::CloseApp
-            }
             _ => EventResponse::Ignore,
         }
     }

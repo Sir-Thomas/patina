@@ -5,7 +5,7 @@ use crate::{app_framework::SystemEvent, signals::{EVENT_QUEUE, REFRESH_TIMEOUT, 
 
 #[embassy_executor::task]
 pub async fn display_timeout_task() {
-    const TIMEOUT_DURATION: Duration = Duration::from_secs(10);
+    const TIMEOUT_DURATION: Duration = Duration::from_secs(5);
     let mut display_is_on = true;
 
     loop {

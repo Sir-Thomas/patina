@@ -50,6 +50,7 @@ impl AppContext {
         CHANGE_DISPLAY_STATE.signal(false);
         self.screen_on = false;
         self.backlight.disable();
+        self.clear_display().await;
         self.display.sleep().await;
     }
 

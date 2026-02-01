@@ -119,8 +119,8 @@ impl AppManager {
     }
 
     async fn close_current_app(&mut self) {
-        self.context.clear_display().await;
         if self.app_id != AppId::Clock {
+            self.context.clear_display().await;
             self.switch_to(AppId::Clock).await;
         } else {
             self.current_app.on_stop(&mut self.context).await;

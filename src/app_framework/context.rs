@@ -1,6 +1,7 @@
 use defmt::info;
 use embassy_sync::watch::DynAnonReceiver;
 use embassy_time::Duration;
+use pinetime_bsp::BrightnessLevel;
 use pinetime_bsp::vibrator::Vibrator;
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
 use time::OffsetDateTime;
@@ -89,5 +90,13 @@ impl AppContext {
 
     pub async fn short_vibration(&mut self) {
         self.vibrator.pulse(Duration::from_millis(15)).await;
+    }
+    
+    pub fn brightness(&self) -> BrightnessLevel {
+        self.backlight.brightness()
+    }
+
+    pub fn set_brightness(&mut self, brightness: BrightnessLevel) {
+        self.backlight.set_brightness(brightness);
     }
 }

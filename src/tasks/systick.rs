@@ -4,7 +4,7 @@ use time::OffsetDateTime;
 
 use crate::{app_framework::events::SystemEvent, signals::{ADJUST_TIME, CURRENT_TIME, EVENT_QUEUE}};
 
-const SYSTICK_DURATION: embassy_time::Duration = embassy_time::Duration::from_millis(1000);
+const SYSTICK_DURATION: embassy_time::Duration = embassy_time::Duration::from_millis(100);
 
 #[embassy_executor::task]
 pub async fn systick_task() {

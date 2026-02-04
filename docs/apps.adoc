@@ -89,7 +89,7 @@ async fn render(&mut self, ctx: &mut AppContext) {
     // create our text box
     let text = TextBox::new(string.as_str(), bounds, style);
     // draw the text to the screen
-    ctx.draw(&text, bounds, Rgb565::BLACK).await;
+    ctx.draw(&text, Rgb565::BLACK).await;
 }
 ----
 . Finally, we add the app to xref:../src/apps/mod.rs[mod.rs] to compile it into the firmware.

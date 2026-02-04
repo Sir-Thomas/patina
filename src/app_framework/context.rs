@@ -59,14 +59,13 @@ impl AppContext {
         self.display.clear(Rgb565::BLACK).await;
     }
 
-    pub async fn draw<T: Drawable<Color = Rgb565>>(
+    pub async fn draw<T: Drawable<Color = Rgb565> + Dimensions>(
         &mut self,
         drawable: &T,
-        bounds: Rectangle,
         background: Rgb565
     ) {
         // info!("[Context] Drawing Item to display");
-        self.display.draw(drawable, bounds, background).await;
+        self.display.draw(drawable, background).await;
     }
 
     pub fn time(&mut self) -> OffsetDateTime {

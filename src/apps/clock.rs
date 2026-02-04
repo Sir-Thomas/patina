@@ -104,7 +104,7 @@ impl WatchApp for ClockApp {
             self.lg_digit_style
         );
         let positioned_colon = colon_text.align_to(&self.display_area, horizontal::Center, vertical::Center);
-        ctx.draw(&positioned_colon, positioned_colon.bounding_box(), Rgb565::BLACK).await;
+        ctx.draw(&positioned_colon, Rgb565::BLACK).await;
     }
     
     async fn on_stop(&mut self, _ctx: &mut AppContext) {
@@ -175,7 +175,7 @@ impl WatchApp for ClockApp {
                 self.lg_digit_style,
             );
             let positioned_hours = hours_text.align_to(&self.display_area, horizontal::Left, vertical::Center);
-            ctx.draw(&positioned_hours, positioned_hours.bounding_box(), Rgb565::BLACK).await;
+            ctx.draw(&positioned_hours, Rgb565::BLACK).await;
             self.update_hours = false;
         }
         if self.update_minutes {
@@ -187,7 +187,7 @@ impl WatchApp for ClockApp {
                 self.lg_digit_style,
             );
             let positioned_minutes = minutes_text.align_to(&self.display_area, horizontal::Right, vertical::Center);
-            ctx.draw(&positioned_minutes, positioned_minutes.bounding_box(), Rgb565::BLACK).await;
+            ctx.draw(&positioned_minutes, Rgb565::BLACK).await;
             self.update_minutes = false;
         }
         if self.update_seconds {
@@ -200,7 +200,7 @@ impl WatchApp for ClockApp {
                     self.sm_digit_style,
                 );
                 let positioned_seconds = seconds_text.align_to(&self.display_area, horizontal::Right, vertical::Bottom);
-                ctx.draw(&positioned_seconds, positioned_seconds.bounding_box(), Rgb565::BLACK).await;
+                ctx.draw(&positioned_seconds, Rgb565::BLACK).await;
             }
             self.update_seconds = false;
         }
@@ -208,7 +208,7 @@ impl WatchApp for ClockApp {
             let circle = Circle::new(Point::zero(), 40)
                 .into_styled(PrimitiveStyle::with_fill(if self.edit_time { Rgb565::GREEN } else { Rgb565::BLACK }))
                 .align_to(&self.display_area, horizontal::Left, vertical::Bottom);
-            ctx.draw(&circle, circle.bounding_box(), Rgb565::BLACK).await;
+            ctx.draw(&circle, Rgb565::BLACK).await;
             self.redraw_edit_indicator = false;
         }
     }

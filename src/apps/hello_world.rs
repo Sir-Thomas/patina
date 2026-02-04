@@ -56,6 +56,6 @@ impl WatchApp for HelloWorldApp {
         // create our text box
         let text = TextBox::new(string.as_str(), bounds, style);
         // draw the text to the screen
-        ctx.draw(&text, bounds, Rgb565::BLACK).await;
+        ctx.draw(&text, Rgb565::BLACK).await;
     }
 }

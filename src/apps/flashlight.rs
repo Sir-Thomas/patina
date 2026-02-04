@@ -51,7 +51,6 @@ impl WatchApp for FlashlightApp {
             ctx.draw(
                 &Rectangle::new(Point::new(0, 0), Size::new(240, 240))
                     .into_styled(PrimitiveStyle::with_fill(Rgb565::WHITE)),
-                Rectangle::new(Point::new(0, 0), Size::new(240, 240)),
                 Rgb565::WHITE,
             )
             .await;

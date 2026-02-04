@@ -1,0 +1,54 @@
+= Patina
+
+== A reliable, extensible Watch OS for the PineTime written in Rust
+
+== Goals
+
+=== Reliability
+
+For a device you use every day, reliability is key.
+The watch should "just work" and require no technical skills.
+We strive to eliminate bugs and provide a seamless user experience.
+
+==== How we achieve this:
+
+* Provide a **Stable API** for app development
+** Once API is finalized, an app should never break with new versions of the firmware
+* Take full advantage of Rust's safety features
+** Minimize `unsafe` code
+** Wherever possible, eliminate `unwrap` and handle errors gracefully
+* Use reliable drivers that:
+** Are documented well
+** Tested thoroughly
+** Provide stable APIs
+** Work with Embassy's Async Runtime
+* If a reliable driver does not exist, we must create one
+
+=== Extensibility
+
+The firmware is just a foundation, a great OS comes when the community begins to customize and write apps on top of it.
+
+==== How we achieve this:
+
+* **Documentation**
+** Write thorough and easy to follow guides on getting started and building the OS
+** Create a comprehensive guide on writing an app
+* Provide simple **tooling** to create and test apps
+** Script to create a new app
+** Emulator for quick development
+** Simple build tooling for compiling a new app into the firmware
+
+== Getting Started
+
+* xref:docs/flashing.adoc[Flashing Guide]
+* xref:docs/apps.adoc[Application Writing Guide]
+* xref:CONTRIBUTING.adoc[Contributing]
+
+== License
+
+Licensed under either of:
+
+* Apache License, Version 2.0 (link:LICENSE-APACHE[LICENSE-APACHE] or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license (link:LICENSE-MIT[LICENSE-MIT] or http://opensource.org/licenses/MIT)
+
+at your option.

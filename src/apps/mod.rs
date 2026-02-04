@@ -3,9 +3,9 @@ use crate::app_framework::prelude::*;
 
 define_apps! {
     Clock => clock::ClockApp,
+    Settings => settings::SettingsApp,
     Alarm => alarm::AlarmApp,
     Flashlight => flashlight::FlashlightApp,
-    Sample => sample::SampleApp,
+    HelloWorld => hello_world::HelloWorldApp,
     Stopwatch => stopwatch::StopwatchApp,
-    Settings => settings::SettingsApp,
 }

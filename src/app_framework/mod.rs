@@ -9,6 +9,7 @@ pub use events::{SystemEvent, EventResponse};
 // Prelude for apps to use
 #[allow(unused)] // TODO: Remove these allows
 pub mod prelude {
+    pub use core::fmt::Write as _;
     pub use crate::app_framework::{WatchApp, AppContext, SystemEvent, EventResponse};
     pub use embedded_graphics::{prelude::*, primitives::Rectangle, pixelcolor::Rgb565};
     pub use embedded_graphics::{mono_font::{MonoTextStyle, ascii::FONT_10X20}};

@@ -1,0 +1,17 @@
+== How Can I Help?
+
+* Improve Architecture
+** The sooner we can stabilize the architechture and App API, the sooner we can get to the fun stuff. Any input is greatly appreciated. I am very new to this and I'm sure I have made many mistakes.
+* Contribute to Drivers
+** Drivers are the foundation of the OS. The better the drivers, the better the OS. Please contribute to or, if necessary, rewrite any drivers that we use to **add functionality**, **improve performance**, and **eliminate bugs**.
+* Update Documentation
+** Documentation is a key part of enabling people to use and contribute to the ecosystem. While we do our best to keep everything up-to-date as we go, things will inevitably be missed. If you notice anything that is out of date or unclear, please submit a pull request.
+* **Write Apps!**
+** Apps are what users care about. The goal is to have a wide variety of apps available that users can install as desired.
+
+CAUTION: The App API is not stable yet. While it is our goal to provide a consistant API so that apps will not break from updates, we are not there yet. Any apps written until then may encounter breaking changes as we continue to determine the needs of the OS and make necessary adjustments.
+
+* Give Feedback
+** Use the OS in your daily life. Find out what works well and what doesn't and let us know. We have lots of plans for future improvements and added functionality, but it always helps to get a broader idea of what people want and use.
+
+WARNING: The OS is not stable yet. Bluetooth, while high on the priority list, has not yet been implemented. It is possible to flash to a sealed PineTime, but this will disable bluetooth completely. To update we must initiate a reboot, triggering the bootloader to swap back to InfiniTime. If you choose to go this route, do so at your own risk.

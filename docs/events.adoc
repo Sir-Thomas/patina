@@ -1,0 +1,62 @@
+= Events Reference
+:source-highlighter: highlight.js
+:source-language: rust
+
+== SystemEvent
+
+A `SystemEvent` is passed into the `on_event` function whenever the OS detects an event. This allows the app to handle the input and then return an `EventResponse`.
+----
+pub enum SystemEvent {
+    ButtonPress, // TODO: Deprecate. Button press never handled by app
+    Touch(TouchEvent),
+    ScreenTimeout, // TODO: Decide how timeout is handled.
+    Tick,
+}
+----
+
+* `ButtonPress` - This event will be deprecated. Button presses will always be handled by the OS. Closing the current app if one is open, turning off the display if the clock app is active, or turning on the display if it is off.
+* `Touch(TouchEvent)` - Signals that a touch was detected and provides access to the `TouchEvent` and its `location` and `gesture` values.
++
+----
+pub struct TouchEvent {
+    pub location: Point,
+    pub gesture: TouchGesture,
+}
+
+pub enum TouchGesture {
+    /// No gesture detected
+    None,
+    /// Swipe Down
+    SwipeDown,
+    /// Swipe up
+    SwipeUp,
+    /// Swipe left
+    SwipeLeft,
+    /// Swipe right
+    SwipeRight,
+    /// Tap
+    Tap,
+    /// Double Tap - This doesn't seem to ever be reported. The driver likely needs to be updated to enable double taps.
+    DoubleTap,
+    /// Long Press
+    LongPress,
+}
+----
+* `ScreenTimeout` - Currently this event is passed to the app, this will likely change in the future so the app can request a timeout duration and whether it should close when the display timeout happens.
+* `Tick` - The tick event is called approximately every 100ms. The app can use this to handle timers or other functions that require repeated calls over time.
+
+== EventResponse
+
+An `EventResponse` must be returned from each `on_event` call. This requests the OS to perform any necessary actions.
+----
+pub enum EventResponse {
+    CloseApp,
+    Rerender,
+    SwitchApp(AppId),
+    Ignore,
+}
+----
+* `CloseApp` - Requests the app to be closed, returning the user to the `Clock` app.
+* `Rerender` - Requests the OS to call the `render` function.
+* `SwitchApp(AppId)` - Requests the specified app to be opened.
+* `Ignore` - Signals that the app does not require anything from the OS.

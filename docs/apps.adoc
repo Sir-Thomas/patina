@@ -1,0 +1,107 @@
+= Application Writing Guide
+:source-highlighter: highlight.js
+:source-language: rust
+
+== Start
+
+. Create your application in the `src/apps` directory.
+** The file name should be written in **snake_case**: `hello_world.rs`
+. Import basic components
++
+----
+use crate::app_framework::prelude::*;
+----
+. Create the App Struct
++
+----
+pub struct HelloApp {
+    // Define any state that you want to hold here
+    // State will be initialized when the app is created
+    // All state will be cleaned up when on_stop is called
+    // Persistent state is a potential future feature
+    count: usize,
+}
+----
+. Implement the required functions
+.. `new()` - Create a new instance of the App struct. Initializing variables as needed.
++
+----
+Impl WatchApp for HelloApp {
+    fn new() -> Self {
+        Self {
+            count: 0,
+        }
+    }
+    
+    // Implement remaining functions here
+}
+----
+.. `on_start()` - This function is called before the app starts. Perform any initialization here. Examples include, setting the brightness, getting the time, drawing static content to the screen.
++
+----
+// Our Hello World app does not need to perform any initialization here.
+// ctx is preceded with an underscore to tell the compiler that we do not plan on using it.
+async fn on_start(&mut self, _ctx: &mut AppContext) {}
+----
+.. `on_stop()` - Perform any cleanup before the app stops. Restore previous brightness, etc.
++
+----
+// Once again, our app does not need to do anything here.
+async fn on_stop(&mut self, _ctx: &mut AppContext) {}
+----
+.. `on_event()` - This is how the app interacts with the user.
+The function is called whenever a hardware event is detected.
+That event is passed into this function and can be handled by the app.
+The app must respond with an event response to tell the OS what to do next.
+See xref:events.adoc[Events] for details.
++
+----
+async fn on_event(&mut self, event: SystemEvent, _ctx: &mut AppContext) -> EventResponse {
+    // Look at the event and respond accordingly
+    match event {
+        // We will increment the counter when the screen is tapped
+        SystemEvent::Touch(touch_event) => {
+            if touch_event.gesture == TouchGesture::Tap {
+                self.count = self.count + 1;
+                // Request a re-render to show the updated counter
+                EventResponse::Rerender
+            } else {
+                // Tell the OS to do nothing for other touch gestures
+                EventResponse::Ignore
+            }
+        },
+        // Tell the OS to do nothing for other events
+        _ => EventResponse::Ignore
+    }
+}
+----
+.. `render()` - This function will draw the app to the screen. It is called when the app is started and whenever the OS receives a `Rerender` event response.
++
+----
+async fn render(&mut self, ctx: &mut AppContext) {
+    // create a bounding box the size of the screen
+    let bounds = Rectangle::new(Point::zero(), Size::(240, 240));
+    // set up our text style
+    let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
+    // write our string
+    let mut string = String::<32>::new();
+    write!(string, "Hello, World!\nCount: {}", self.count).unwrap();
+    // create our text box
+    let text = TextBox::new(string.as_str(), bounds, style);
+    // draw the text to the screen
+    ctx.draw(&text, bounds, Rgb565::BLACK).await;
+}
+----
+. Finally, we add the app to xref:../src/apps/mod.rs[mod.rs] to compile it into the firmware.
++
+----
+define_apps! {
+    Clock => clock::ClockApp,
+    Alarm => alarm::AlarmApp,
+    Flashlight => flashlight::FlashlightApp,
+//  App ID | File Name  | Struct Name
+    Hello => hello_world::HelloApp,
+    Stopwatch => stopwatch::StopwatchApp,
+    Settings => settings::SettingsApp,
+}
+----

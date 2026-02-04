@@ -2,6 +2,9 @@
 name = "patina"
 version = "0.1.0"
 edition = "2024"
+description = "A reliable, extensible Watch OS for the PineTime written in Rust"
+repository = "https://github.com/Sir-Thomas/patina"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 bt-hci = { version = "0.7.0", default-features = false, features = ["defmt", "embassy-time"] }

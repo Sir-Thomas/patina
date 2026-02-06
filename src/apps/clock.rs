@@ -3,7 +3,7 @@ use eg_seven_segment::SevenSegmentStyle;
 use embedded_graphics::primitives::{Circle, PrimitiveStyle};
 use embedded_text::TextBox;
 use pinetime_bsp::touch::TouchGesture;
-use time::{Duration, OffsetDateTime};
+use time::{Duration, PrimitiveDateTime};
 use embedded_layout::prelude::*;
 
 use crate::{app_framework::prelude::*, apps::AppId};
@@ -20,8 +20,8 @@ const LG_SIZE: Size = Size::new(LG_DIGIT_WIDTH * 2 + LG_DIGIT_SPACING, LG_DIGIT_
 const SM_SIZE: Size = Size::new(SM_DIGIT_WIDTH * 2 + SM_DIGIT_SPACING, SM_DIGIT_HEIGHT + SM_DIGIT_SPACING);
 
 pub struct ClockApp{
-    current_time: OffsetDateTime,
-    previous_time: OffsetDateTime,
+    current_time: PrimitiveDateTime,
+    previous_time: PrimitiveDateTime,
     lg_digit_style: SevenSegmentStyle<Rgb565>,
     sm_digit_style: SevenSegmentStyle<Rgb565>,
     display_area: Rectangle,
@@ -70,8 +70,8 @@ impl WatchApp for ClockApp {
             .build();
         
         ClockApp {
-            current_time: OffsetDateTime::UNIX_EPOCH,
-            previous_time: OffsetDateTime::UNIX_EPOCH,
+            current_time: PrimitiveDateTime::MIN,
+            previous_time: PrimitiveDateTime::MIN,
             lg_digit_style,
             sm_digit_style,
             display_area: Rectangle::new(
@@ -165,9 +165,9 @@ impl WatchApp for ClockApp {
     }
 
     async fn render(&mut self, ctx: &mut AppContext) {
-        info!("[Clock App] Rendering Clock");
+        debug!("[Clock App] Rendering Clock");
         if self.update_hours {
-            info!("[Clock App] Updating Hours");
+            debug!("[Clock App] Updating Hours");
             let hour_str = hour_to_string(self.current_time.hour());
             let hours_text = TextBox::new(
                 hour_str.as_str(),
@@ -179,7 +179,7 @@ impl WatchApp for ClockApp {
             self.update_hours = false;
         }
         if self.update_minutes {
-            info!("[Clock App] Updating Minutes");
+            debug!("[Clock App] Updating Minutes");
             let minute_str = num_to_string(self.current_time.minute());
             let minutes_text = TextBox::new(
                 minute_str.as_str(),
@@ -191,7 +191,7 @@ impl WatchApp for ClockApp {
             self.update_minutes = false;
         }
         if self.update_seconds {
-            info!("[Clock App] Updating Seconds");
+            debug!("[Clock App] Updating Seconds");
             {
                 let second_str = num_to_string(self.current_time.second());
                 let seconds_text = TextBox::new(

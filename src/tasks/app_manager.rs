@@ -2,6 +2,7 @@ use crate::app_framework::{AppContext, EventResponse};
 use crate::app_framework::events::SystemEvent;
 use crate::apps::{AppId, AppInstance};
 use crate::tasks;
+use crate::tasks::ble::ble_runner;
 use defmt::{debug, info};
 use embassy_executor::Spawner;
 use pinetime_bsp::PineTime;
@@ -26,6 +27,8 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     spawner.must_spawn(tasks::touch::touch_task(board.touchscreen));
     info!("[App Manager] Spawning display timeout task");
     spawner.must_spawn(tasks::display_timeout::display_timeout_task());
+    // info!("[App Manager] Spawning BLE tasks");
+    ble_runner(board.bluetooth, spawner);
     info!("[App Manager] Starting event loop");
 
     loop {

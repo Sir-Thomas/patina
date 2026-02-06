@@ -1242,6 +1242,7 @@ dependencies = [
  "embedded-graphics",
  "embedded-hal-async",
  "lcd-async",
+ "nrf-sdc",
  "static_cell",
 ]
 

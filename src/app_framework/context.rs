@@ -4,14 +4,14 @@ use embassy_time::Duration;
 use pinetime_bsp::BrightnessLevel;
 use pinetime_bsp::vibrator::Vibrator;
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
-use time::OffsetDateTime;
+use time::PrimitiveDateTime;
 
 use crate::signals::{ADJUST_TIME, CURRENT_TIME, CHANGE_DISPLAY_STATE};
 use crate::app_framework::prelude::*;
 
 pub struct AppContext {
     backlight: BacklightController,
-    current_time_watcher: DynAnonReceiver<'static, OffsetDateTime>,
+    current_time_watcher: DynAnonReceiver<'static, PrimitiveDateTime>,
     display: DisplayController,
     screen_on: bool,
     vibrator: Vibrator,
@@ -68,12 +68,12 @@ impl AppContext {
         self.display.draw(drawable, background).await;
     }
 
-    pub fn time(&mut self) -> OffsetDateTime {
+    pub fn time(&mut self) -> PrimitiveDateTime {
         let current_time = self.current_time_watcher.try_get().unwrap();
         current_time
     }
 
-    pub fn set_time(&mut self, new_time: OffsetDateTime) {
+    pub fn set_time(&mut self, new_time: PrimitiveDateTime) {
         ADJUST_TIME.signal(new_time);
     }
 

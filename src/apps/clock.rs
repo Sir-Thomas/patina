@@ -1,9 +1,11 @@
 use defmt::{debug, info};
 use eg_seven_segment::SevenSegmentStyle;
+use embedded_icon::{NewIcon, mdi::size24px as mdi};
 use embedded_text::{TextBox, alignment::HorizontalAlignment};
 use pinetime_bsp::touch::TouchGesture;
 use time::PrimitiveDateTime;
-use embedded_layout::prelude::*;
+use embedded_layout::{layout::linear::LinearLayout, prelude::*};
+use u8g2_fonts::U8g2TextStyle;
 
 use crate::{app_framework::prelude::*, apps::AppId};
 
@@ -24,7 +26,9 @@ pub struct ClockApp{
     previous_time: PrimitiveDateTime,
     lg_digit_style: SevenSegmentStyle<Rgb565>,
     sm_digit_style: SevenSegmentStyle<Rgb565>,
+    sm_text_style: U8g2TextStyle<Rgb565>,
     display_area: Rectangle,
+    update_header: bool,
     update_date: bool,
     update_hours_minutes: bool,
     update_seconds: bool,
@@ -37,6 +41,7 @@ impl WatchApp for ClockApp {
             .digit_spacing(LG_DIGIT_SPACING)
             .segment_width(LG_SEGMENT_WIDTH)
             .segment_color(Rgb565::GREEN)
+            .inactive_segment_color(Rgb565::new(0, 1, 0))
             .build();
         let sm_digit_style = eg_seven_segment::SevenSegmentStyleBuilder::new()
             .digit_size(Size::new(SM_DIGIT_WIDTH, SM_DIGIT_HEIGHT))
@@ -44,16 +49,22 @@ impl WatchApp for ClockApp {
             .segment_width(SM_SEGMENT_WIDTH)
             .segment_color(Rgb565::GREEN)
             .build();
-        
+        let sm_text_style = U8g2TextStyle::new(
+            u8g2_fonts::fonts::u8g2_font_spleen16x32_mr,
+            Rgb565::GREEN
+        );
+
         ClockApp {
             current_time: PrimitiveDateTime::MIN,
             previous_time: PrimitiveDateTime::MIN,
             lg_digit_style,
             sm_digit_style,
+            sm_text_style,
             display_area: Rectangle::new(
                 Point::new(5, 5),
                 Size::new(230, 230),
             ),
+            update_header: true,
             update_date: true,
             update_hours_minutes: true,
             update_seconds: true,
@@ -62,6 +73,7 @@ impl WatchApp for ClockApp {
     
     async fn on_start(&mut self, ctx: &mut AppContext) {
         info!("[Clock App] Starting Clock App");
+        self.update_header = true;
         self.update_date = true;
         self.update_hours_minutes = true;
         self.update_seconds = true;
@@ -125,8 +137,29 @@ impl WatchApp for ClockApp {
 
     async fn render(&mut self, ctx: &mut AppContext) {
         debug!("[Clock App] Rendering Clock");
+        if self.update_header {
+            let battery_icon = mdi::BatteryMedium::new(Rgb565::GREEN);
+            let bluetooth_icon = mdi::Bluetooth::new(Rgb565::GREEN);
+            let battery_icon = Image::new(&battery_icon, Point::zero());
+            let bluetooth_icon = Image::new(&bluetooth_icon, Point::zero());
+            let layout = LinearLayout::horizontal(
+                Chain::new(bluetooth_icon).append(battery_icon)
+            ).arrange().align_to(&self.display_area, horizontal::Right, vertical::Top);
+            ctx.draw_view(&layout, Rgb565::BLACK).await;
+            self.update_header = false;
+        }
         if self.update_date {
             debug!("[Clock App] Updating Date");
+            let mut string = String::<3>::new();
+            write!(string, "{:.3}", self.current_time.weekday()).unwrap();
+            let date_text = TextBox::with_alignment(
+                string.as_str(),
+                Rectangle::new(Point::zero(), Size::new(50, 34)),
+                self.sm_text_style.clone(),
+                HorizontalAlignment::Left,
+            );
+            let positioned_date = date_text.align_to(&self.display_area, horizontal::Left, vertical::Top);
+            ctx.draw(&positioned_date, Rgb565::BLACK).await;
             let mut string = String::<11>::new();
             write!(string, "{:4}-{:02}-{:02}", self.current_time.year(), self.current_time.month() as u8, self.current_time.day()).unwrap();
             let date_text = TextBox::with_alignment(
@@ -149,8 +182,7 @@ impl WatchApp for ClockApp {
                 self.lg_digit_style,
                 HorizontalAlignment::Center,
             );
-            let positioned_hours = hours_minutes_text.align_to(&self.display_area, horizontal::Center, vertical::Center)
-                .translate(Point::new(0, -20));
+            let positioned_hours = hours_minutes_text.align_to(&self.display_area, horizontal::Center, vertical::Center);
             ctx.draw(&positioned_hours, Rgb565::BLACK).await;
             self.update_hours_minutes = false;
         }

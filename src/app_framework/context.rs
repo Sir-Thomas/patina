@@ -1,6 +1,7 @@
 use defmt::info;
 use embassy_sync::watch::DynAnonReceiver;
 use embassy_time::Duration;
+use embedded_layout::View;
 use pinetime_bsp::BrightnessLevel;
 use pinetime_bsp::vibrator::Vibrator;
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
@@ -66,6 +67,15 @@ impl AppContext {
     ) {
         // info!("[Context] Drawing Item to display");
         self.display.draw(drawable, background).await;
+    }
+
+    pub async fn draw_view<T: Drawable<Color = Rgb565> + View>(
+        &mut self,
+        view: &T,
+        background: Rgb565
+    ) {
+        // info!("[Context] Drawing View to display");
+        self.display.draw_view(view, background).await;
     }
 
     pub fn time(&mut self) -> PrimitiveDateTime {

@@ -7,7 +7,7 @@ use pinetime_bsp::ble::BleController;
 use static_cell::StaticCell;
 use trouble_host::{HostResources, prelude::*};
 
-use crate::signals::ADJUST_TIME;
+use crate::{app_framework::SystemEvent, signals::{ADJUST_TIME, EVENT_QUEUE}};
 
 // We have to pretend to be InfiniTime to get companion apps to connect
 // TODO: Find an app that can connect to a custom device name, or implement our own companion app
@@ -79,6 +79,8 @@ async fn process_connection(
     stack: &'static Stack<'static, SoftdeviceController<'static>, DefaultPacketPool>,
     connection: Connection<'static, DefaultPacketPool>,
 ) {
+    defmt::info!("[ble] connected");
+    EVENT_QUEUE.send(SystemEvent::BluetoothConnected).await;
     sync_time(stack, connection.clone()).await;
 
     loop {
@@ -86,6 +88,7 @@ async fn process_connection(
         match event {
             ConnectionEvent::Disconnected { reason } => {
                 defmt::info!("[ble] disconnected: {:?}", reason);
+                EVENT_QUEUE.send(SystemEvent::BluetoothDisconnected).await;
                 break;
             }
             _ => {}

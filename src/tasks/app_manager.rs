@@ -71,11 +71,20 @@ impl AppManager {
 
     async fn handle_event(&mut self, event: SystemEvent) {
         if self.context.display_is_off() {
-            if event == SystemEvent::ButtonPress {
-                self.context.turn_on_display().await;
-                self.current_app.on_start(&mut self.context).await;
-                self.current_app.render(&mut self.context).await;
-                REFRESH_TIMEOUT.signal(());
+            match event {
+                SystemEvent::ButtonPress => {
+                    self.context.turn_on_display().await;
+                    self.current_app.on_start(&mut self.context).await;
+                    self.current_app.render(&mut self.context).await;
+                    REFRESH_TIMEOUT.signal(());
+                }
+                SystemEvent::BluetoothConnected => {
+                    self.context.set_bluetooth_connected(true);
+                }
+                SystemEvent::BluetoothDisconnected => {
+                    self.context.set_bluetooth_connected(false);
+                }
+                _ => {}
             }
             return;
         }
@@ -89,6 +98,12 @@ impl AppManager {
             SystemEvent::ButtonPress => {
                 self.close_current_app().await;
                 return;
+            }
+            SystemEvent::BluetoothConnected => {
+                self.context.set_bluetooth_connected(true);
+            }
+            SystemEvent::BluetoothDisconnected => {
+                self.context.set_bluetooth_connected(false);
             }
             SystemEvent::Tick => {},
             _ => REFRESH_TIMEOUT.signal(()),

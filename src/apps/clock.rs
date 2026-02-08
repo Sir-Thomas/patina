@@ -22,6 +22,7 @@ const HOURS_MINUTES_SIZE: Size = Size::new(LG_DIGIT_WIDTH * 4 + LG_DIGIT_SPACING
 const SEC_SIZE: Size = Size::new(SM_DIGIT_WIDTH * 2 + SM_DIGIT_SPACING, SM_DIGIT_HEIGHT + SM_DIGIT_SPACING);
 
 pub struct ClockApp{
+    bluetooth_connected: bool,
     current_time: PrimitiveDateTime,
     previous_time: PrimitiveDateTime,
     lg_digit_style: SevenSegmentStyle<Rgb565>,
@@ -55,6 +56,7 @@ impl WatchApp for ClockApp {
         );
 
         ClockApp {
+            bluetooth_connected: false,
             current_time: PrimitiveDateTime::MIN,
             previous_time: PrimitiveDateTime::MIN,
             lg_digit_style,
@@ -73,12 +75,12 @@ impl WatchApp for ClockApp {
     
     async fn on_start(&mut self, ctx: &mut AppContext) {
         info!("[Clock App] Starting Clock App");
+        self.bluetooth_connected = ctx.bluetooth_connected();
         self.update_header = true;
         self.update_date = true;
         self.update_hours_minutes = true;
         self.update_seconds = true;
         self.current_time = ctx.time();
-        self.current_time.year();
         info!(
             "[Clock App] Current Time: {:04}-{:02}-{:02} {:02}:{:02}:{:02}",
             self.current_time.year(),
@@ -131,6 +133,16 @@ impl WatchApp for ClockApp {
                     _ => EventResponse::Ignore,
                 }
             },
+            SystemEvent::BluetoothConnected => {
+                self.bluetooth_connected = true;
+                self.update_header = true;
+                EventResponse::Rerender
+            },
+            SystemEvent::BluetoothDisconnected => {
+                self.bluetooth_connected = false;
+                self.update_header = true;
+                EventResponse::Rerender
+            },
             _ => EventResponse::Ignore,
         }
     }
@@ -139,13 +151,22 @@ impl WatchApp for ClockApp {
         debug!("[Clock App] Rendering Clock");
         if self.update_header {
             let battery_icon = mdi::BatteryMedium::new(Rgb565::GREEN);
-            let bluetooth_icon = mdi::Bluetooth::new(Rgb565::GREEN);
             let battery_icon = Image::new(&battery_icon, Point::zero());
-            let bluetooth_icon = Image::new(&bluetooth_icon, Point::zero());
-            let layout = LinearLayout::horizontal(
-                Chain::new(bluetooth_icon).append(battery_icon)
-            ).arrange().align_to(&self.display_area, horizontal::Right, vertical::Top);
-            ctx.draw_view(&layout, Rgb565::BLACK).await;
+            if self.bluetooth_connected {
+                let bluetooth_icon = mdi::BluetoothConnect::new(Rgb565::GREEN);
+                let bluetooth_icon = Image::new(&bluetooth_icon, Point::zero());
+                let layout = LinearLayout::horizontal(
+                    Chain::new(bluetooth_icon).append(battery_icon)
+                ).arrange().align_to(&self.display_area, horizontal::Right, vertical::Top);
+                ctx.draw_view(&layout, Rgb565::BLACK).await;
+            } else {
+                let bluetooth_icon = mdi::Bluetooth::new(Rgb565::GREEN);
+                let bluetooth_icon = Image::new(&bluetooth_icon, Point::zero());
+                let layout = LinearLayout::horizontal(
+                    Chain::new(bluetooth_icon).append(battery_icon)
+                ).arrange().align_to(&self.display_area, horizontal::Right, vertical::Top);
+                ctx.draw_view(&layout, Rgb565::BLACK).await;
+            }
             self.update_header = false;
         }
         if self.update_date {

@@ -4,6 +4,8 @@ use crate::apps::AppId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
 pub enum SystemEvent {
+    BluetoothConnected,
+    BluetoothDisconnected,
     ButtonPress, // TODO: Deprecate. Button press never handled by app
     Touch(TouchEvent),
     ScreenTimeout, // TODO: Decide how timeout is handled.

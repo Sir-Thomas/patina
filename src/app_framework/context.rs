@@ -12,6 +12,7 @@ use crate::app_framework::prelude::*;
 
 pub struct AppContext {
     backlight: BacklightController,
+    bluetooth_connected: bool,
     current_time_watcher: DynAnonReceiver<'static, PrimitiveDateTime>,
     display: DisplayController,
     screen_on: bool,
@@ -27,6 +28,7 @@ impl AppContext {
         let current_time_watcher = CURRENT_TIME.dyn_anon_receiver();
         Self {
             backlight,
+            bluetooth_connected: false,
             current_time_watcher,
             display,
             screen_on: true,
@@ -108,5 +110,13 @@ impl AppContext {
 
     pub fn set_brightness(&mut self, brightness: BrightnessLevel) {
         self.backlight.set_brightness(brightness);
+    }
+
+    pub fn bluetooth_connected(&self) -> bool {
+        self.bluetooth_connected
+    }
+
+    pub fn set_bluetooth_connected(&mut self, connected: bool) {
+        self.bluetooth_connected = connected;
     }
 }

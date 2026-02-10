@@ -1,37 +1,69 @@
 use defmt::info;
 use embassy_executor::Spawner;
-use embassy_futures::select::{Either, select};
-use embassy_time::{Duration, with_timeout};
 use nrf_sdc::{SoftdeviceController, mpsl::MultiprotocolServiceLayer};
 use pinetime_bsp::ble::BleController;
 use static_cell::StaticCell;
 use trouble_host::{HostResources, prelude::*};
+use crate::{
+    app_framework::SystemEvent,
+    signals::EVENT_QUEUE,
+    tasks::ble::{clients::sync_time, services::{cts::update_time, prelude::*}},
+};
 
-use crate::{app_framework::SystemEvent, signals::{ADJUST_TIME, EVENT_QUEUE}};
+mod clients;
+mod services;
 
 // We have to pretend to be InfiniTime to get companion apps to connect
 // TODO: Find an app that can connect to a custom device name, or implement our own companion app
-const NAME: &str = "InfiniTime";
+pub const NAME: &str = "InfiniTime";
 
 const L2CAP_MTU: usize = 27;
 const L2CAP_CHANNELS_MAX: usize = 2;
 type BleResources = HostResources<DefaultPacketPool, L2CAP_CHANNELS_MAX, L2CAP_MTU>;
 static RESOURCES: StaticCell<BleResources> = StaticCell::new();
 static STACK: StaticCell<Stack<'static, SoftdeviceController, DefaultPacketPool>> = StaticCell::new();
+static SERVER: StaticCell<PatinaGattServer<'static>> = StaticCell::new();
 
+#[gatt_server]
+pub struct PatinaGattServer {
+    #[service]
+    battery: BatteryService,
+    #[service]
+    cts: CurrentTimeService,
+    #[service]
+    device_information: DeviceInformationService,
+    // TODO: Implement DFU Support
+    // #[service]
+    // dfu: InfinitimeDfuService,
+    #[service]
+    heart_rate: HeartRateService,
+}
 
-pub fn ble_runner(bluetooth: BleController, spawner: Spawner) {
-
-    let address: Address = Address::random([0xff, 0x8f, 0x2a, 0x05, 0xe4, 0xff]);
+#[embassy_executor::task]
+pub async fn ble_runner(bluetooth: BleController, spawner: Spawner) {
+    let address: Address = Address::random([0xff, 0x8f, 0x1a, 0x05, 0xe4, 0xff]);
 
     let resources = RESOURCES.init(BleResources::new());
     let stack = STACK.init(trouble_host::new(bluetooth.sdc, resources).set_random_address(address));
 
-    let Host { peripheral, runner, .. } = stack.build();
+    let Host { mut peripheral, runner, .. } = stack.build();
+
+    let gatt_server = PatinaGattServer::new_with_config(
+        GapConfig::Peripheral(
+            PeripheralConfig { name: NAME, appearance: &appearance::watch::SMARTWATCH }
+        )
+    ).unwrap();
+
+    let server = SERVER.init(gatt_server);
 
     spawner.must_spawn(mpsl_task(bluetooth.mpsl));
-    spawner.must_spawn(ble_task(runner));
-    spawner.must_spawn(advertise_task(stack, peripheral));
+    spawner.must_spawn(host_task(runner));
+    loop {
+        match advertise(&mut peripheral, &server, stack).await {
+            Ok(conn) => connection_events(&conn, &server).await,
+            Err(_) => info!("[ble] Error"),
+        }
+    }
 }
 
 #[embassy_executor::task]
@@ -40,126 +72,88 @@ async fn mpsl_task(mpsl: &'static MultiprotocolServiceLayer<'static>) -> ! {
 }
 
 #[embassy_executor::task]
-async fn ble_task(mut runner: Runner<'static, SoftdeviceController<'static>, DefaultPacketPool>) {
+async fn host_task(mut runner: Runner<'static, SoftdeviceController<'static>, DefaultPacketPool>) {
     runner.run().await.unwrap();
 }
 
-#[embassy_executor::task]
-async fn advertise_task(
-    stack: &'static Stack<'static, SoftdeviceController<'static>, DefaultPacketPool>,
-    mut peripheral: Peripheral<'static, SoftdeviceController<'static>, DefaultPacketPool>,
-) {
-    let mut advertiser_data = [0; 31];
-    AdStructure::encode_slice(
+async fn advertise<'a, 'b, 'c, C: Controller>(
+    peripheral: &mut Peripheral<'a, C, DefaultPacketPool>,
+    server: &'b PatinaGattServer<'_>,
+    stack: &'a Stack<'a, SoftdeviceController<'a>, DefaultPacketPool>,
+) -> Result<GattConnection<'a, 'b, DefaultPacketPool>, BleHostError<C::Error>> {
+    const GAP_ADV_LIMIT: usize = 31;
+    let mut advertiser_data = [0; GAP_ADV_LIMIT];
+    let advertiser_len = AdStructure::encode_slice(
         &[
             AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
+            AdStructure::ServiceUuids16(&[service::BATTERY.to_le_bytes()]),
             AdStructure::CompleteLocalName(NAME.as_bytes()),
         ],
         &mut advertiser_data[..],
-    ).unwrap();
-    loop {
-        info!("[ble] advertising");
-        let advertiser = peripheral.advertise(
-            &Default::default(),
-            Advertisement::ConnectableScannableUndirected {
-                adv_data: &advertiser_data[..],
-                scan_data: &[],
-            },
-        ).await.unwrap();
-        match advertiser.accept().await {
-            Ok(connection) => process_connection(stack, connection).await,
-            Err(e) => {
-                info!("Error advertising: {:?}", e);
-            }
-        }
-    }
+    )?;
+    let advertiser = peripheral.advertise(
+        &Default::default(),
+        Advertisement::ConnectableScannableUndirected {
+            adv_data: &advertiser_data[0..advertiser_len],
+            scan_data: &[],
+        },
+    ).await.unwrap();
+    info!("[ble] Advertising");
+    let conn = advertiser.accept().await?;
+    sync_time(stack, conn.clone()).await;
+    let conn = conn.with_attribute_server(server)?;
+    info!("[ble] Connection Established");
+    EVENT_QUEUE.send(SystemEvent::BluetoothConnected).await;
+    Ok(conn)
 }
 
-async fn process_connection(
-    stack: &'static Stack<'static, SoftdeviceController<'static>, DefaultPacketPool>,
-    connection: Connection<'static, DefaultPacketPool>,
+async fn connection_events(
+    connection: &GattConnection<'_, '_, DefaultPacketPool>,
+    server: &'_ PatinaGattServer<'_>,
 ) {
-    defmt::info!("[ble] connected");
-    EVENT_QUEUE.send(SystemEvent::BluetoothConnected).await;
-    sync_time(stack, connection.clone()).await;
-
     loop {
-        let event = connection.next().await;
-        match event {
-            ConnectionEvent::Disconnected { reason } => {
-                defmt::info!("[ble] disconnected: {:?}", reason);
+        match connection.next().await {
+            GattConnectionEvent::Disconnected { reason } => {
+                info!("[gatt] disconnected: {:?}", reason);
                 EVENT_QUEUE.send(SystemEvent::BluetoothDisconnected).await;
                 break;
+            }
+            GattConnectionEvent::Gatt { event } => {
+                handle_gatt_event(event, server).await;
+                // match event.accept() {
+                //     Ok(reply) => reply.send().await,
+                //     Err(e) => info!("[gatt] error proccessing request: {:?}", e),
+                // }
             }
             _ => {}
         }
     }
 }
 
-async fn sync_time(
-    stack: &'static Stack<'static, SoftdeviceController<'static>, DefaultPacketPool>,
-    conn: Connection<'static, DefaultPacketPool>
+async fn handle_gatt_event(
+    event: GattEvent<'_, '_, DefaultPacketPool>,
+    server: &'_ PatinaGattServer<'_>,
 ) {
-    info!("[ble] synchronizing time");
-    let client = GattClient::<_, DefaultPacketPool, 10>::new(stack, &conn).await.unwrap();
-    match select(
-        client.task(),
-        with_timeout(Duration::from_secs(8), async {
-            let services = client.services_by_uuid(&Uuid::new_short(0x1805)).await?;
-            for service in &services {
-                info!("[ble] found service: {:?}", service);
-            }
-            if let Some(service) = services.first() {
-                info!("[ble] found current time service");
-                let c: Characteristic<u8> = client
-                    .characteristic_by_uuid(&service, &Uuid::new_short(0x2a2b))
-                    .await?;
-
-                let mut data = [0; 10];
-                client.read_characteristic(&c, &mut data[..]).await?;
-
-                if let Some(time) = parse_time(data) {
-                    let (h, m, s) = time.as_hms();
-                    info!("[ble] received time: {:02}:{:02}:{:02}", h, m, s);
-                    ADJUST_TIME.signal(time);
-                }
-            } else {
-                info!("[ble] current time service not found");
-            }
-            Ok::<(), BleHostError<nrf_sdc::Error>>(())
-        }),
-    )
-    .await
-    {
-        Either::First(_) => panic!("[ble] gatt client exited prematurely"),
-        Either::Second(Ok(_)) => {
-            info!("[ble] time sync completed");
+    match event {
+        GattEvent::Read(event) => {
+            event.accept().unwrap();
+            info!("[gatt] read request");
         }
-        Either::Second(Err(e)) => {
-            info!("[ble] time sync error: {:?}", e);
+        GattEvent::Write(event) => {
+            handle_write_event(event, server).await;
+        }
+        _ => {
+            info!("[gatt] other event");
         }
     }
 }
 
-fn parse_time(data: [u8; 10]) -> Option<time::PrimitiveDateTime> {
-    let year = u16::from_le_bytes([data[0], data[1]]);
-    let month = data[2];
-    let day = data[3];
-    let hour = data[4];
-    let minute = data[5];
-    let second = data[6];
-    let _weekday = data[7];
-    let secs_frac = data[8];
-
-    if let Ok(month) = month.try_into() {
-        let date = time::Date::from_calendar_date(year as i32, month, day);
-        let micros = secs_frac as u32 * 1000000 / 256;
-        let time = time::Time::from_hms_micro(hour, minute, second, micros);
-        if let (Ok(time), Ok(date)) = (time, date) {
-            let dt = time::PrimitiveDateTime::new(date, time);
-            return Some(dt);
-        }
+async fn handle_write_event(
+    event: WriteEvent<'_, '_, DefaultPacketPool>,
+    server: &'_ PatinaGattServer<'_>,
+) {
+    if event.handle() == server.cts.current_time.handle {
+        info!("[gatt] Write Event to Time Characteristic: {:?}", event.data());
+        update_time(event.data().try_into().unwrap());
     }
-    info!("[ble] failed to parse time data: {:?}", data);
-    None
 }

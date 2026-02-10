@@ -1,0 +1,92 @@
+= Bluetooth Low Energy
+
+== Goal
+
+This document will be used to agregate BLE information and to track implementation progress. The goal is to duplicate all functionality from InfiniTime so the watch can be easily used by any existing companion app.
+
+== Progress Tracker
+
+* [x] Basic Advertising and Connection
+* [x] Time Sync
+* [ ] Battery Level
+* [ ] DFU
+
+== Services and Characteristics
+
+This table will list all the services and characteristics that InfiniTime supports and mark which ones have been implemented.
+
+NOTE: We have to advertise as "InfiniTime" right now. In the future, we will need to submit PRs to any companion apps that filter by hostname and add "Patina" to their filters.
+
+.Services and Characteristics
+|===
+| Service | Characteristic | Read | Write | Notify | Implemented | Notes
+
+| Heart Rate Service | Heart Rate Measurement
+| x | | x | 
+| TODO
+
+| Generic Access | Device Name
+| x | | | x
+| "InfiniTime" for now
+
+| Generic Access | Appearance
+| x | | | x
+| 
+
+| Generic Attribute | Service Changed
+| | | | 
+| TODO
+
+| Device Information Service | Manufacturer Name String
+| x | | | x
+| "PINE64"
+
+| Device Information Service | Model Number String
+| x | | | x
+| "PineTime"
+
+| Device Information Service | Serial Number String
+| x | | | x
+| "0"
+
+| Device Information Service | Firmware Revision String
+| x | | | x
+| Patina Version
+
+| Device Information Service | Hardware Revision String
+| x | | | x
+| "1.0.0"
+
+| Device Information Service | Software Revision String
+| x | | | x
+| "Patina"
+
+| Current Time Service | Local Time Information
+| x | | | 
+| Doesn't seem to be used in InfiniTime
+
+| Current Time Service | Current Time
+| x | x | x |
+| Need to implement read and notify
+
+| Alert Notification Service | New Alert
+| | x | |
+| TODO
+
+| Alert Notification Service | {Custom Alert for Calls}
+| | x | | 
+| TODO
+
+| Battery Service | Battery Level
+| x | | x | 
+| TODO: replace dummy value and implement notifications
+
+| Immediate Alert | Alert Level
+| | | | 
+| TODO
+
+| {Custom} | {Custom}
+| | | | 
+| TODO: Fill out custom InfiniTime Services and Characteristics
+
+|===

@@ -27,8 +27,8 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     spawner.must_spawn(tasks::touch::touch_task(board.touchscreen));
     info!("[App Manager] Spawning display timeout task");
     spawner.must_spawn(tasks::display_timeout::display_timeout_task());
-    // info!("[App Manager] Spawning BLE tasks");
-    ble_runner(board.bluetooth, spawner);
+    info!("[App Manager] Spawning BLE tasks");
+    spawner.must_spawn(ble_runner(board.bluetooth, spawner));
     info!("[App Manager] Starting event loop");
 
     loop {

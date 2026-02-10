@@ -1422,6 +1422,7 @@ dependencies = [
  "embedded-layout",
  "lcd-async",
  "nrf-sdc",
+ "spi-memory-async",
  "static_cell",
 ]
 
@@ -1788,6 +1789,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
+name = "spi-memory-async"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "480a0933bbdbcbdede5aaaf02b5cbfd5edbbfeb94bd9c8387eb08afd433f32c1"
+dependencies = [
+ "bitflags 2.10.0",
+ "defmt 0.3.100",
+ "embedded-hal-async",
+ "embedded-storage",
+ "embedded-storage-async",
+]
+
+[[package]]
 name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1930,7 +1944,7 @@ dependencies = [
 [[package]]
 name = "trouble-host"
 version = "0.5.1"
-source = "git+https://github.com/embassy-rs/trouble.git?rev=e658d7e1a6d669788d3cd8e23f3d078e55952772#e658d7e1a6d669788d3cd8e23f3d078e55952772"
+source = "git+https://github.com/embassy-rs/trouble.git?rev=9392c9638ca9e8e518a1335808b7c057ee549977#9392c9638ca9e8e518a1335808b7c057ee549977"
 dependencies = [
  "bt-hci",
  "defmt 1.0.1",
@@ -1949,7 +1963,7 @@ dependencies = [
 [[package]]
 name = "trouble-host-macros"
 version = "0.3.0"
-source = "git+https://github.com/embassy-rs/trouble.git?rev=e658d7e1a6d669788d3cd8e23f3d078e55952772#e658d7e1a6d669788d3cd8e23f3d078e55952772"
+source = "git+https://github.com/embassy-rs/trouble.git?rev=9392c9638ca9e8e518a1335808b7c057ee549977#9392c9638ca9e8e518a1335808b7c057ee549977"
 dependencies = [
  "convert_case 0.8.0",
  "darling",

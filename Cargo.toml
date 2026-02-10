@@ -37,7 +37,7 @@ u8g2-fonts = { version = "0.7.2", features = ["embedded_graphics_textstyle"] }
 [patch.crates-io]
 lcd-async = { git = "https://github.com/okhsunrog/lcd-async.git", rev = "50efe0a30a4c68a1502049556b2ffb27c13b9539" }
 nrf-sdc = { git = "https://github.com/alexmoon/nrf-sdc.git", rev = "8ac007cbd4556e1123bee2479d66272ddf355844" }
-trouble-host = { git = "https://github.com/embassy-rs/trouble.git", rev = "e658d7e1a6d669788d3cd8e23f3d078e55952772"}
+trouble-host = { git = "https://github.com/embassy-rs/trouble.git", rev = "9392c9638ca9e8e518a1335808b7c057ee549977"}
 
 [profile.release]
 debug = 2

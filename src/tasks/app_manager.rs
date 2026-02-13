@@ -18,9 +18,8 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     let receiver = EVENT_QUEUE.receiver();
     info!("[App Manager] Initializing App Manager");
     let mut app_manager = AppManager::new(board.backlight, board.display, board.vibrator);
-    // Wait for first systick to ensure clock is available
-    receiver.receive().await;
-    app_manager.init().await;
+    info!("[App Manager] Spawning Battery task");
+    spawner.must_spawn(tasks::battery::battery_task(board.battery));
     info!("[App Manager] Spawning button task");
     spawner.must_spawn(tasks::button::button_task(board.button));
     info!("[App Manager] Spawning touch task");
@@ -29,6 +28,10 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     spawner.must_spawn(tasks::display_timeout::display_timeout_task());
     info!("[App Manager] Spawning BLE tasks");
     spawner.must_spawn(ble_runner(board.bluetooth, spawner));
+    info!("[App Manager] All tasks spawned, waiting for first event");
+    // Wait for first systick to ensure clock is available
+    receiver.receive().await;
+    app_manager.init().await;
     info!("[App Manager] Starting event loop");
 
     loop {

@@ -4,7 +4,7 @@ use embedded_icon::{NewIcon, mdi::size24px as mdi};
 use embedded_text::{TextBox, alignment::HorizontalAlignment};
 use pinetime_bsp::touch::TouchGesture;
 use time::PrimitiveDateTime;
-use embedded_layout::{layout::linear::LinearLayout, prelude::*};
+use embedded_layout::prelude::*;
 use u8g2_fonts::U8g2TextStyle;
 
 use crate::{app_framework::prelude::*, apps::AppId};
@@ -22,9 +22,10 @@ const HOURS_MINUTES_SIZE: Size = Size::new(LG_DIGIT_WIDTH * 4 + LG_DIGIT_SPACING
 const SEC_SIZE: Size = Size::new(SM_DIGIT_WIDTH * 2 + SM_DIGIT_SPACING, SM_DIGIT_HEIGHT + SM_DIGIT_SPACING);
 
 pub struct ClockApp{
+    battery_level: u8,
+    battery_charging: bool,
     bluetooth_connected: bool,
     current_time: PrimitiveDateTime,
-    previous_time: PrimitiveDateTime,
     lg_digit_style: SevenSegmentStyle<Rgb565>,
     sm_digit_style: SevenSegmentStyle<Rgb565>,
     sm_text_style: U8g2TextStyle<Rgb565>,
@@ -56,9 +57,10 @@ impl WatchApp for ClockApp {
         );
 
         ClockApp {
+            battery_level: 0,
+            battery_charging: false,
             bluetooth_connected: false,
             current_time: PrimitiveDateTime::MIN,
-            previous_time: PrimitiveDateTime::MIN,
             lg_digit_style,
             sm_digit_style,
             sm_text_style,
@@ -76,6 +78,7 @@ impl WatchApp for ClockApp {
     async fn on_start(&mut self, ctx: &mut AppContext) {
         info!("[Clock App] Starting Clock App");
         self.bluetooth_connected = ctx.bluetooth_connected();
+        (self.battery_level, self.battery_charging) = ctx.battery();
         self.update_header = true;
         self.update_date = true;
         self.update_hours_minutes = true;
@@ -99,27 +102,33 @@ impl WatchApp for ClockApp {
         match event {
             SystemEvent::Tick => {
                 debug!("[Clock App] Handling Tick");
-                self.current_time = ctx.time();
+                let current_time = ctx.time();
+                let (battery_level, battery_charging) = ctx.battery();
                 debug!(
                     "[Clock App] Current Time: {:02}:{:02}:{:02}",
                     self.current_time.hour(),
                     self.current_time.minute(),
                     self.current_time.second()
                 );
-                if self.current_time.day() != self.previous_time.day(){
+                if self.battery_level != battery_level || self.battery_charging != battery_charging {
+                    self.battery_level = battery_level;
+                    self.battery_charging = battery_charging;
+                    self.update_header = true;
+                }
+                if self.current_time.day() != current_time.day(){
                     self.update_date = true;
                 }
-                if self.current_time.hour() != self.previous_time.hour() {
+                if self.current_time.hour() != current_time.hour() {
                     self.update_hours_minutes = true;
                 }
-                if self.current_time.minute() != self.previous_time.minute() {
+                if self.current_time.minute() != current_time.minute() {
                     self.update_hours_minutes = true;
                 }
-                if self.current_time.second() != self.previous_time.second() {
+                if self.current_time.second() != current_time.second() {
                     self.update_seconds = true;
                 }
                 if self.update_date || self.update_hours_minutes || self.update_seconds {
-                    self.previous_time = self.current_time;
+                    self.current_time = current_time;
                     EventResponse::Rerender
                 } else {
                     EventResponse::Ignore
@@ -150,22 +159,19 @@ impl WatchApp for ClockApp {
     async fn render(&mut self, ctx: &mut AppContext) {
         debug!("[Clock App] Rendering Clock");
         if self.update_header {
-            let battery_icon = mdi::BatteryMedium::new(Rgb565::GREEN);
-            let battery_icon = Image::new(&battery_icon, Point::zero());
+            draw_battery_icon(self.battery_level, self.battery_charging, &self.display_area, ctx).await;
             if self.bluetooth_connected {
                 let bluetooth_icon = mdi::BluetoothConnect::new(Rgb565::GREEN);
-                let bluetooth_icon = Image::new(&bluetooth_icon, Point::zero());
-                let layout = LinearLayout::horizontal(
-                    Chain::new(bluetooth_icon).append(battery_icon)
-                ).arrange().align_to(&self.display_area, horizontal::Right, vertical::Top);
-                ctx.draw_view(&layout, Rgb565::BLACK).await;
+                let bluetooth_icon = Image::new(&bluetooth_icon, Point::zero())
+                    .align_to(&self.display_area, horizontal::Right, vertical::Top)
+                    .translate(Point::new(-24, 0));
+                ctx.draw_view(&bluetooth_icon, Rgb565::BLACK).await;
             } else {
                 let bluetooth_icon = mdi::Bluetooth::new(Rgb565::GREEN);
-                let bluetooth_icon = Image::new(&bluetooth_icon, Point::zero());
-                let layout = LinearLayout::horizontal(
-                    Chain::new(bluetooth_icon).append(battery_icon)
-                ).arrange().align_to(&self.display_area, horizontal::Right, vertical::Top);
-                ctx.draw_view(&layout, Rgb565::BLACK).await;
+                let bluetooth_icon = Image::new(&bluetooth_icon, Point::zero())
+                    .align_to(&self.display_area, horizontal::Right, vertical::Top)
+                    .translate(Point::new(-24, 0));
+                ctx.draw_view(&bluetooth_icon, Rgb565::BLACK).await;
             }
             self.update_header = false;
         }
@@ -227,5 +233,40 @@ fn to_12_hr(hour: u8) -> u8 {
     match hour % 12 {
         0 => 12,
         display_hour => display_hour,
+    }
+}
+
+async fn draw_battery_icon(level: u8, charging: bool, display_area: &Rectangle, ctx: &mut AppContext) {
+    match (level, charging) {
+        (_, true) => {
+            let icon = mdi::BatteryCharging::new(Rgb565::GREEN);
+            let icon = Image::new(&icon, Point::zero());
+            let icon = icon.align_to(display_area, horizontal::Right, vertical::Top);
+            ctx.draw(&icon, Rgb565::BLACK).await;
+        },
+        (60..=u8::MAX, false) => {
+            let icon = mdi::BatteryHigh::new(Rgb565::GREEN);
+            let icon = Image::new(&icon, Point::zero());
+            let icon = icon.align_to(display_area, horizontal::Right, vertical::Top);
+            ctx.draw(&icon, Rgb565::BLACK).await;
+        },
+        (30..60, false) => {
+            let icon = mdi::BatteryMedium::new(Rgb565::GREEN);
+            let icon = Image::new(&icon, Point::zero());
+            let icon = icon.align_to(display_area, horizontal::Right, vertical::Top);
+            ctx.draw(&icon, Rgb565::BLACK).await;
+        },
+        (10..30, false) => {
+            let icon = mdi::BatteryLow::new(Rgb565::GREEN);
+            let icon = Image::new(&icon, Point::zero());
+            let icon = icon.align_to(display_area, horizontal::Right, vertical::Top);
+            ctx.draw(&icon, Rgb565::BLACK).await;
+        },
+        (0..10, false) => {
+            let icon = mdi::BatteryAlert::new(Rgb565::GREEN);
+            let icon = Image::new(&icon, Point::zero());
+            let icon = icon.align_to(display_area, horizontal::Right, vertical::Top);
+            ctx.draw(&icon, Rgb565::BLACK).await;
+        },
     }
 }

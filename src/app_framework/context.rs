@@ -7,7 +7,7 @@ use pinetime_bsp::vibrator::Vibrator;
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
 use time::PrimitiveDateTime;
 
-use crate::signals::{ADJUST_TIME, CURRENT_TIME, CHANGE_DISPLAY_STATE};
+use crate::signals::{ADJUST_TIME, BATTERY, CHANGE_DISPLAY_STATE, CURRENT_TIME};
 use crate::app_framework::prelude::*;
 
 pub struct AppContext {
@@ -84,24 +84,17 @@ impl AppContext {
         let current_time = self.current_time_watcher.try_get().unwrap();
         current_time
     }
-
+    #[allow(dead_code)] // TODO: Decide whether to keep this
     pub fn set_time(&mut self, new_time: PrimitiveDateTime) {
         ADJUST_TIME.signal(new_time);
     }
-
-    pub fn adjust_time(&mut self, delta: time::Duration) {
-        let new_time = self.time() + delta;
-        ADJUST_TIME.signal(new_time);
-    }
-
-    pub fn reset_seconds(&mut self) {
-        let mut current_time = self.time();
-        current_time = current_time.truncate_to_minute();
-        self.set_time(current_time);
-    }
-
+    #[allow(dead_code)]
     pub async fn short_vibration(&mut self) {
         self.vibrator.pulse(Duration::from_millis(15)).await;
+    }
+
+    pub fn battery(&self) -> (u8, bool) {
+        BATTERY.try_get().unwrap()
     }
     
     pub fn brightness(&self) -> BrightnessLevel {

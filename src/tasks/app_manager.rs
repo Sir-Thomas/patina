@@ -27,7 +27,7 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     info!("[App Manager] Spawning display timeout task");
     spawner.must_spawn(tasks::display_timeout::display_timeout_task());
     info!("[App Manager] Spawning BLE tasks");
-    spawner.must_spawn(ble_runner(board.bluetooth, spawner));
+    spawner.must_spawn(ble_runner(board.bluetooth, board.spi_flash.flash, spawner));
     info!("[App Manager] All tasks spawned, waiting for first event");
     // Wait for first systick to ensure clock is available
     receiver.receive().await;

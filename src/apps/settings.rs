@@ -38,12 +38,12 @@ impl WatchApp for SettingsApp {
                 if touch_event.gesture == TouchGesture::SwipeUp {
                     EventResponse::CloseApp
                 } else if self.screen == SettingsScreen::Main {
-                    self.main_screen_touch_event(touch_event.location)
+                    self.main_screen_touch_event(touch_event.location, ctx).await
                 } else if self.screen == SettingsScreen::Firmware {
                     if (touch_event.location.x >= 10 && touch_event.location.x <= 230)
                     && (touch_event.location.y >= 180 && touch_event.location.y <= 230) 
                     && !ctx.firmware_is_validated() {
-                        // ctx.validate_firmware().await;
+                        ctx.validate_firmware().await;
                         EventResponse::Ignore
                     } else {
                         self.screen = SettingsScreen::Main;
@@ -110,8 +110,9 @@ impl WatchApp for SettingsApp {
 }
 
 impl SettingsApp {
-    fn main_screen_touch_event(&mut self, location: Point) -> EventResponse {
+    async fn main_screen_touch_event(&mut self, location: Point, ctx: &mut AppContext) -> EventResponse {
         if location.x <= 120 && location.y <= 120 {
+            ctx.short_vibration().await;
             self.settings.brightness = match self.settings.brightness {
                 BrightnessLevel::Low => BrightnessLevel::Medium,
                 BrightnessLevel::Medium => BrightnessLevel::High,

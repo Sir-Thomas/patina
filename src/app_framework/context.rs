@@ -91,7 +91,7 @@ impl AppContext {
     pub fn set_time(&mut self, new_time: PrimitiveDateTime) {
         ADJUST_TIME.signal(new_time);
     }
-    #[allow(dead_code)]
+    
     pub async fn short_vibration(&mut self) {
         self.vibrator.pulse(Duration::from_millis(15)).await;
     }

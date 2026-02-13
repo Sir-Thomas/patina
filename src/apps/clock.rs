@@ -137,7 +137,7 @@ impl WatchApp for ClockApp {
             SystemEvent::Touch(event) => {
                 match event.gesture {
                     TouchGesture::SwipeDown => {
-                        EventResponse::SwitchApp(AppId::Flashlight)
+                        EventResponse::SwitchApp(AppId::Settings)
                     }
                     _ => EventResponse::Ignore,
                 }

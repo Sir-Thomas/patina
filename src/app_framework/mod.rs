@@ -13,8 +13,10 @@ pub mod prelude {
     pub use crate::app_framework::{WatchApp, AppContext, SystemEvent, EventResponse};
     pub use embedded_graphics::{image::Image, prelude::*, primitives::Rectangle, pixelcolor::Rgb565};
     pub use embedded_graphics::{mono_font::{MonoTextStyle, ascii::FONT_10X20}};
+    pub use embedded_layout::prelude::*;
     pub use embedded_text::TextBox;
     pub use heapless::{String, Vec};
+    pub use pinetime_bsp::touch::TouchGesture;
 }
 
 

@@ -62,12 +62,16 @@ impl AppContext {
         self.display.clear(Rgb565::BLACK).await;
     }
 
+    pub async fn fill_display(&mut self, color: Rgb565) {
+        info!("[Context] Filling display with color");
+        self.display.clear(color).await;
+    }
+
     pub async fn draw<T: Drawable<Color = Rgb565> + Dimensions>(
         &mut self,
         drawable: &T,
         background: Rgb565
     ) {
-        // info!("[Context] Drawing Item to display");
         self.display.draw(drawable, background).await;
     }
 
@@ -76,7 +80,6 @@ impl AppContext {
         view: &T,
         background: Rgb565
     ) {
-        // info!("[Context] Drawing View to display");
         self.display.draw_view(view, background).await;
     }
 
@@ -111,5 +114,14 @@ impl AppContext {
 
     pub fn set_bluetooth_connected(&mut self, connected: bool) {
         self.bluetooth_connected = connected;
+    }
+
+    pub fn firmware_is_validated(&self) -> bool {
+        info!("[Context] Firmware Validation not implemented, returning false");
+        false
+    }
+
+    pub async fn validate_firmware(&self) {
+        info!("[Context] Firmware Validation not implemented, skipping");
     }
 }

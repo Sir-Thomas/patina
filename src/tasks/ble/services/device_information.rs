@@ -12,6 +12,6 @@ pub struct DeviceInformationService {
     firmware_revision: &'static str,
     #[characteristic(uuid = characteristic::HARDWARE_REVISION_STRING, read, value = "1.0.0")]
     hardware_revision: &'static str,
-    #[characteristic(uuid = characteristic::SOFTWARE_REVISION_STRING, read, value = "Patina")]
+    #[characteristic(uuid = characteristic::SOFTWARE_REVISION_STRING, read, value = env!("CARGO_PKG_NAME"))]
     software_revision: &'static str,
 }

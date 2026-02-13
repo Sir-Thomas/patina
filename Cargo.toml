@@ -21,7 +21,7 @@ embassy-sync = { version = "0.7.2", features = ["defmt"] }
 embassy-time = { version = "0.5.0", features = ["defmt", "defmt-timestamp-uptime"] }
 embedded-graphics = { version = "0.8.1", features = ["defmt"] }
 embedded-hal-async = { version = "1.0.0", features = ["defmt-03"] }
-embedded-icon = "0.0.1"
+embedded-icon = { version = "0.0.1", features = ["32px", "48px"] }
 embedded-layout = "0.4.2"
 embedded-text = "0.7.3"
 heapless = { version = "0.9.2", features = ["defmt"] }

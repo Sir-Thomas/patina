@@ -96,7 +96,7 @@ impl AppContext {
         self.vibrator.pulse(Duration::from_millis(15)).await;
     }
 
-    pub fn battery(&self) -> (u8, bool) {
+    pub fn battery(&self) -> (u8, bool, u32) {
         BATTERY.try_get().unwrap()
     }
     

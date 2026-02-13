@@ -81,10 +81,11 @@ impl WatchApp for SettingsApp {
                 let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
                 let mut string = String::<256>::new();
                 write!(
-                    string, "Firmware: {}\nVersion: {}\nValidated: {}",
+                    string, "Firmware: {}\nVersion: {}\nValidated: {}\nBattery: {}V",
                     env!("CARGO_PKG_NAME"),
                     env!("CARGO_PKG_VERSION"),
                     validated,
+                    ctx.battery().2 as f32 / 1000.0,
                 ).unwrap();
                 let text = TextBox::new(string.as_str(), bounds, style);
                 ctx.draw(&text, Rgb565::BLACK).await;
@@ -111,14 +112,14 @@ impl WatchApp for SettingsApp {
 impl SettingsApp {
     fn main_screen_touch_event(&mut self, location: Point) -> EventResponse {
         if location.x <= 120 && location.y <= 120 {
-            self.screen = SettingsScreen::Flashlight;
-        } else if location.x > 120 && location.y <= 120 {
             self.settings.brightness = match self.settings.brightness {
                 BrightnessLevel::Low => BrightnessLevel::Medium,
                 BrightnessLevel::Medium => BrightnessLevel::High,
                 BrightnessLevel::High => BrightnessLevel::Low,
             };
-        } else if location.x <= 120 && location.y > 120 {
+        } else if location.x > 120 && location.y <= 120 {
+            self.screen = SettingsScreen::Flashlight;
+        } else if location.x > 120 && location.y > 120 {
             self.screen = SettingsScreen::Firmware;
         }
         EventResponse::Rerender
@@ -127,16 +128,16 @@ impl SettingsApp {
     async fn draw_main_screen(&self, ctx: &mut AppContext, display_area: &Rectangle) {
         const OFFSET: i32 = 60;
         ctx.clear_display().await;
+        self.draw_brightness_icon(self.settings.brightness, ctx, display_area, OFFSET).await;
         let flashlight_icon = mdi::size48px::Flashlight::new(Rgb565::CSS_LIGHT_GRAY);
         let flashlight_icon = Image::new(&flashlight_icon, Point::zero())
             .align_to(display_area, horizontal::Center, vertical::Center)
-            .translate(Point::new(-OFFSET, -OFFSET));
+            .translate(Point::new(OFFSET, -OFFSET));
         ctx.draw(&flashlight_icon, Rgb565::BLACK).await;
-        self.draw_brightness_icon(self.settings.brightness, ctx, display_area, OFFSET).await;
         let info_icon = mdi::size48px::Information::new(Rgb565::CSS_LIGHT_GRAY);
         let info_icon = Image::new(&info_icon, Point::zero())
             .align_to(display_area, horizontal::Center, vertical::Center)
-            .translate(Point::new(-OFFSET, OFFSET));
+            .translate(Point::new(OFFSET, OFFSET));
         ctx.draw(&info_icon, Rgb565::BLACK).await;
     }
 
@@ -152,21 +153,21 @@ impl SettingsApp {
                 let brightness_icon = mdi::size48px::Brightness5::new(Rgb565::CSS_LIGHT_GRAY);
                 let brightness_icon = Image::new(&brightness_icon, Point::zero())
                     .align_to(display_area, horizontal::Center, vertical::Center)
-                    .translate(Point::new(offset, -offset));
+                    .translate(Point::new(-offset, -offset));
                 ctx.draw(&brightness_icon, Rgb565::BLACK).await;
             }
             BrightnessLevel::Medium =>{
                 let brightness_icon = mdi::size48px::Brightness6::new(Rgb565::CSS_LIGHT_GRAY);
                 let brightness_icon = Image::new(&brightness_icon, Point::zero())
                     .align_to(display_area, horizontal::Center, vertical::Center)
-                    .translate(Point::new(offset, -offset));
+                    .translate(Point::new(-offset, -offset));
                 ctx.draw(&brightness_icon, Rgb565::BLACK).await;
             }
             BrightnessLevel::High =>{
                 let brightness_icon = mdi::size48px::Brightness7::new(Rgb565::CSS_LIGHT_GRAY);
                 let brightness_icon = Image::new(&brightness_icon, Point::zero())
                     .align_to(display_area, horizontal::Center, vertical::Center)
-                    .translate(Point::new(offset, -offset));
+                    .translate(Point::new(-offset, -offset));
                 ctx.draw(&brightness_icon, Rgb565::BLACK).await;
             }
         }

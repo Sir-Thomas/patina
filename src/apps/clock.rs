@@ -78,7 +78,7 @@ impl WatchApp for ClockApp {
     async fn on_start(&mut self, ctx: &mut AppContext) {
         info!("[Clock App] Starting Clock App");
         self.bluetooth_connected = ctx.bluetooth_connected();
-        (self.battery_level, self.battery_charging) = ctx.battery();
+        (self.battery_level, self.battery_charging, _) = ctx.battery();
         self.update_header = true;
         self.update_date = true;
         self.update_hours_minutes = true;
@@ -103,7 +103,7 @@ impl WatchApp for ClockApp {
             SystemEvent::Tick => {
                 debug!("[Clock App] Handling Tick");
                 let current_time = ctx.time();
-                let (battery_level, battery_charging) = ctx.battery();
+                let (battery_level, battery_charging, _) = ctx.battery();
                 debug!(
                     "[Clock App] Current Time: {:02}:{:02}:{:02}",
                     self.current_time.hour(),

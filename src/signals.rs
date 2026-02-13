@@ -8,7 +8,7 @@ pub static CURRENT_TIME: Watch<ThreadModeRawMutex, PrimitiveDateTime, TIME_WATCH
 pub static ADJUST_TIME: Signal<ThreadModeRawMutex, PrimitiveDateTime> = Signal::new();
 
 const BATTERY_WATCHERS: usize = 0;
-pub static BATTERY: Watch<ThreadModeRawMutex, (u8, bool), BATTERY_WATCHERS> = Watch::new();
+pub static BATTERY: Watch<ThreadModeRawMutex, (u8, bool, u32), BATTERY_WATCHERS> = Watch::new();
 
 const EVENT_QUEUE_SIZE: usize = 5;
 pub static EVENT_QUEUE: Channel<ThreadModeRawMutex, SystemEvent, EVENT_QUEUE_SIZE> = Channel::new();

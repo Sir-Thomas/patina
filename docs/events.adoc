@@ -7,6 +7,8 @@
 A `SystemEvent` is passed into the `on_event` function whenever the OS detects an event. This allows the app to handle the input and then return an `EventResponse`.
 ----
 pub enum SystemEvent {
+    BluetoothConnected,
+    BluetoothDisconnected,
     ButtonPress, // TODO: Deprecate. Button press never handled by app
     Touch(TouchEvent),
     ScreenTimeout, // TODO: Decide how timeout is handled.
@@ -14,6 +16,8 @@ pub enum SystemEvent {
 }
 ----
 
+* `BluetoothConnected` - Signals that a device has connected over Bluetooth.
+* `BluetoothDisconnected` - Signals that the Bluetooth connection has been dropped.
 * `ButtonPress` - This event will be deprecated. Button presses will always be handled by the OS. Closing the current app if one is open, turning off the display if the clock app is active, or turning on the display if it is off.
 * `Touch(TouchEvent)` - Signals that a touch was detected and provides access to the `TouchEvent` and its `location` and `gesture` values.
 +
@@ -42,8 +46,8 @@ pub enum TouchGesture {
     LongPress,
 }
 ----
-* `ScreenTimeout` - Currently this event is passed to the app, this will likely change in the future so the app can request a timeout duration and whether it should close when the display timeout happens.
-* `Tick` - The tick event is called approximately every 100ms. The app can use this to handle timers or other functions that require repeated calls over time.
+* `ScreenTimeout` - Currently this event is passed to the app and the app decides how to handle the event. This will likely change in the future so the app can request specific timeout duration.
+* `Tick` - The tick event is called approximately every 100ms. The app can use this to handle timers or other functions that require repeated updates over time.
 
 == EventResponse
 

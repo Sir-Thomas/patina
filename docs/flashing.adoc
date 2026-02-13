@@ -2,44 +2,11 @@
 :source-highlighter: highlight.js
 :source-language: console
 
-== Flash Bare Metal
-Must be using bare metal values for memory.x and comment out VTOR
-
-----
-cargo run
-----
-
-== Flash MCUBoot
-
-----
-probe-rs erase --chip nRF52832_xxAA
-probe-rs download bootloader-1.0.1.bin --binary-format Binary --chip nRF52832_xxAA
-----
-
-== Build for MCUBoot and Flash
-Must be using MCUBoot values for memory.x and VTOR.
-----
-cargo objcopy --release -- -O binary patina.bin
-scripts/imgtool.py create --header-size 512 --align 4 --version 1.0.0 --slot-size 475136 --pad-header patina.bin patina-image.bin
-probe-rs download --chip nRF52832_xxAA --base-address 0x8000 --binary-format Binary patina-image.bin
-----
-You must be in the python venv to run the image tool.
-----
-source .venv/bin/activate
-----
-
-== Debug while booting from MCUBoot
-----
-probe-rs attach --chip nRF52832_xxAA target/thumbv7em-none-eabihf/release/patina
-----
-
-== Generate zip for OTA flash
-You must be in the python venv to run adafruit-nrfutil.
-----
-adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application patina-image.bin patina-dfu.zip
-----
-
 == Preparing your environment
+
+These instructions were tested on PopOS. They should work on any Linux device with minimal adjustments (different commands for installing packages). Rust, probe-rs, and the Python scripts are supported on Windows and Mac OS too, but that will take more work. If you do write scripts for another OS, feel free to submit a pull request.
+
+=== Install required packages
 ----
 sudo usermod -a -G plugdev $USER
 sudo apt install rustup libudev-dev libclang-dev
@@ -58,9 +25,68 @@ if [ -d "$HOME/.cargo/bin" ] ; then
 fi
 ----
 
-== Create venv for MCUBoot Image Tool
+=== Create venv for MCUBoot Image Tool
+
+Copy imgtool.py and the imgtool folder from https://github.com/mcu-tools/mcuboot[MCUboot] to the scripts directory.
+
 ----
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r scripts/requirements.txt
+----
+
+== Flashing Patina
+
+If you are not already in the Python venv, run `source .venv/bin/activate` before using any of these scripts.
+
+=== OTA
+
+Run `scripts/build_ota_zip.sh` to create a zip file that can be flashed using any existing companion app. The update file will be located at `images/patina-dfu.zip`.
+
+=== ST-Link
+
+Run `scripts/debug_run_on_mcuboot.sh` to flash an open PineTime running MCUboot and display logs from the device.
+Run `scripts/run_on_mcuboot.sh` to flash with logs disabled.
+
+I plan to create scripts to run on baremetal for quicker testing in the future.
+
+NOTE: This may work with other programmers, but I only have tested it with the ST-Link.
+
+== Archive - Do not use anything past this point
+
+=== Flash Bare Metal
+Must be using bare metal values for memory.x and comment out VTOR
+
+----
+cargo run
+----
+
+=== Flash MCUBoot
+
+----
+probe-rs erase --chip nRF52832_xxAA
+probe-rs download bootloader-1.0.1.bin --binary-format Binary --chip nRF52832_xxAA
+----
+
+=== Build for MCUBoot and Flash
+Must be using MCUBoot values for memory.x and VTOR.
+----
+cargo objcopy --release -- -O binary patina.bin
+scripts/imgtool.py create --header-size 512 --align 4 --version 1.0.0 --slot-size 475136 --pad-header patina.bin patina-image.bin
+probe-rs download --chip nRF52832_xxAA --base-address 0x8000 --binary-format Binary patina-image.bin
+----
+You must be in the python venv to run the image tool.
+----
+source .venv/bin/activate
+----
+
+=== Debug while booting from MCUBoot
+----
+probe-rs attach --chip nRF52832_xxAA target/thumbv7em-none-eabihf/release/patina
+----
+
+=== Generate zip for OTA flash
+You must be in the python venv to run adafruit-nrfutil.
+----
+adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application patina-image.bin patina-dfu.zip
 ----

@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+// Static services like DeviceInformationService trigger unused code warnings
+
 use defmt::{debug, info};
 use embassy_embedded_hal::{flash::partition::Partition, shared_bus::asynch::spi::SpiDevice};
 use embassy_executor::Spawner;
@@ -39,11 +42,11 @@ pub struct PatinaGattServer {
     cts: CurrentTimeService,
     #[service]
     device_information: DeviceInformationService,
-    // TODO: Implement DFU Support
+    // TODO: add heart rate service
+    // #[service]
+    // heart_rate: HeartRateService,
     #[service]
-    dfu: NordicDfuService,
-    #[service]
-    heart_rate: HeartRateService,
+    nordic_dfu: NordicDfuService,
 }
 
 struct DfuDevice<'a> {
@@ -204,7 +207,7 @@ async fn handle_write_event(
         debug!("[gatt] Write Event to Time Characteristic: {:?}", data);
         update_time(data);
         reply.send().await;
-    } else if handle == server.dfu.control.handle {
+    } else if handle == server.nordic_dfu.control.handle {
         let data: Vec<u8, 256> = event.data().try_into().unwrap();
         let reply = event.accept().unwrap();
         debug!("[gatt] Write Event to DFU Control Point: {:?}", data);
@@ -214,7 +217,7 @@ async fn handle_write_event(
             let mut buf: [u8; 32] = [0; 32];
             if let Ok(len) = response.encode(&mut buf[..]) {
                 let response = Vec::from_slice(&buf[..len]).unwrap();
-                if let Err(e) = server.dfu.control.notify(&connection, &response).await {
+                if let Err(e) = server.nordic_dfu.control.notify(&connection, &response).await {
                     info!("[gatt] Error notifying control: {:?}", e);
                 }
             }
@@ -227,7 +230,7 @@ async fn handle_write_event(
             debug!("[gatt] dfu control: unable to decode");
         }
         reply.send().await;
-    } else if handle == server.dfu.packet.handle {
+    } else if handle == server.nordic_dfu.packet.handle {
         let data: Vec<u8, 256> = event.data().try_into().unwrap();
         let reply = event.accept().unwrap();
         debug!("[gatt] Write Event to DFU Packet: {:?}", data);
@@ -237,10 +240,10 @@ async fn handle_write_event(
         let mut buf: [u8; 32] = [0; 32];
         if let Ok(len) = response.encode(&mut buf[..]) {
             let response = Vec::from_slice(&buf[..len]).unwrap();
-            if let Err(e) = server.dfu.control.notify(&connection, &response).await {
+            if let Err(e) = server.nordic_dfu.control.notify(&connection, &response).await {
                 info!("[gatt] Error notifying control: {:?}", e);
             }
-            if let Err(e) = server.dfu.packet.notify(&connection, &response).await {
+            if let Err(e) = server.nordic_dfu.packet.notify(&connection, &response).await {
                 info!("[gatt] Error notifying packet: {:?}", e);
             }
         }

@@ -2,7 +2,7 @@ pub mod battery;
 pub mod cts;
 pub mod device_information;
 // pub mod infinitime_dfu;
-pub mod heart_rate;
+// pub mod heart_rate;
 pub mod nordic_dfu;
 
 pub mod prelude {
@@ -11,7 +11,7 @@ pub mod prelude {
         cts::CurrentTimeService,
         device_information::DeviceInformationService,
         // infinitime_dfu::InfinitimeDfuService,
-        heart_rate::HeartRateService,
+        // heart_rate::HeartRateService,
         nordic_dfu::NordicDfuService,
     };
 }

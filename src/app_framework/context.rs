@@ -1,7 +1,10 @@
 use defmt::info;
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
+use embassy_sync::mutex::Mutex;
 use embassy_sync::watch::DynAnonReceiver;
 use embassy_time::Duration;
 use embedded_layout::View;
+use nrf_sdc::mpsl::Flash;
 use pinetime_bsp::BrightnessLevel;
 use pinetime_bsp::vibrator::Vibrator;
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
@@ -10,11 +13,15 @@ use time::PrimitiveDateTime;
 use crate::signals::{ADJUST_TIME, BATTERY, CHANGE_DISPLAY_STATE, CURRENT_TIME};
 use crate::app_framework::prelude::*;
 
+const VALID_BIT_ADDRESS: u32 = 0x7BFE8;
+const VALID_BIT_VALUE: u32 = 1;
+
 pub struct AppContext {
     backlight: BacklightController,
     bluetooth_connected: bool,
     current_time_watcher: DynAnonReceiver<'static, PrimitiveDateTime>,
     display: DisplayController,
+    flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
     screen_on: bool,
     vibrator: Vibrator,
 }
@@ -23,6 +30,7 @@ impl AppContext {
     pub fn new(
         backlight: BacklightController,
         display: DisplayController,
+        flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
         vibrator: Vibrator,
     ) -> Self {
         let current_time_watcher = CURRENT_TIME.dyn_anon_receiver();
@@ -31,6 +39,7 @@ impl AppContext {
             bluetooth_connected: false,
             current_time_watcher,
             display,
+            flash,
             screen_on: true,
             vibrator,
         }
@@ -117,11 +126,21 @@ impl AppContext {
     }
 
     pub fn firmware_is_validated(&self) -> bool {
-        info!("[Context] Firmware Validation not implemented, returning false");
-        false
+        let value_ptr = VALID_BIT_ADDRESS as *const u32;
+        let value = unsafe { value_ptr.read_volatile() };
+        let valid = value == VALID_BIT_VALUE;
+        info!("[Context] Firmware Validation check at address {:#X}: value={:#X}, valid={}", VALID_BIT_ADDRESS, value, valid);
+        valid
     }
 
     pub async fn validate_firmware(&self) {
-        info!("[Context] Firmware Validation not implemented, skipping");
+        if !self.firmware_is_validated() {
+            let mut flash = self.flash.lock().await;
+            if let Err(e) = flash.write(VALID_BIT_ADDRESS, &VALID_BIT_VALUE.to_le_bytes()).await {
+                defmt::warn!("Error validating firmware: {:?}", e);
+            }
+        } else {
+            info!("Firmware already validated");
+        }
     }
 }

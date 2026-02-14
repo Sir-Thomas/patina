@@ -44,7 +44,7 @@ impl WatchApp for SettingsApp {
                     && (touch_event.location.y >= 180 && touch_event.location.y <= 230) 
                     && !ctx.firmware_is_validated() {
                         ctx.validate_firmware().await;
-                        EventResponse::Ignore
+                        EventResponse::Rerender
                     } else {
                         self.screen = SettingsScreen::Main;
                         EventResponse::Rerender
@@ -96,7 +96,7 @@ impl WatchApp for SettingsApp {
                         .vertical_alignment(VerticalAlignment::Middle)
                         .build();
                     let validate = TextBox::with_textbox_style(
-                        "Validation not yet implemented",
+                        "Validate Firmware",
                         Rectangle::new(Point::new(10, 180),
                         Size::new(220, 50)),
                         style,

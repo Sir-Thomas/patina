@@ -5,6 +5,9 @@ use crate::tasks;
 use crate::tasks::ble::ble_runner;
 use defmt::{debug, info};
 use embassy_executor::Spawner;
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
+use embassy_sync::mutex::Mutex;
+use nrf_sdc::mpsl::Flash;
 use pinetime_bsp::PineTime;
 use pinetime_bsp::backlight::BacklightController;
 use pinetime_bsp::display::DisplayController;
@@ -17,7 +20,7 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     info!("[App Manager] Creating event receiver");
     let receiver = EVENT_QUEUE.receiver();
     info!("[App Manager] Initializing App Manager");
-    let mut app_manager = AppManager::new(board.backlight, board.display, board.vibrator);
+    let mut app_manager = AppManager::new(board.backlight, board.display, board.mpsl_flash, board.vibrator);
     info!("[App Manager] Spawning Battery task");
     spawner.must_spawn(tasks::battery::battery_task(board.battery));
     info!("[App Manager] Spawning button task");
@@ -51,6 +54,7 @@ impl AppManager {
     fn new(
         backlight: BacklightController,
         display: DisplayController,
+        flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
         vibrator: Vibrator,
     ) -> Self {
         let app_id = AppId::Clock;
@@ -59,6 +63,7 @@ impl AppManager {
             context: AppContext::new(
                 backlight,
                 display,
+                flash,
                 vibrator,
             ),
             current_app: AppInstance::new(app_id),

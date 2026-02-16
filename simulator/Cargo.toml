@@ -1,0 +1,5 @@
+[package]
+name = "patina-simulator"
+
+[dependencies]
+embedded-graphics-simulator = "0.8.0"

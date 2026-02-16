@@ -1324,7 +1324,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
-name = "patina"
+name = "patina-firmware"
 version = "0.1.0"
 dependencies = [
  "bt-hci",
@@ -1340,7 +1340,6 @@ dependencies = [
  "embassy-sync",
  "embassy-time",
  "embedded-graphics",
- "embedded-graphics-simulator",
  "embedded-hal-async",
  "embedded-icon",
  "embedded-layout",
@@ -1356,6 +1355,13 @@ dependencies = [
  "time",
  "trouble-host",
  "u8g2-fonts",
+]
+
+[[package]]
+name = "patina-simulator"
+version = "0.0.0"
+dependencies = [
+ "embedded-graphics-simulator",
 ]
 
 [[package]]

@@ -130,9 +130,9 @@ dependencies = [
 
 [[package]]
 name = "bt-hci"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38e6cb8de3a32f45e3c9736dc2b81f12fc386bf2690aec0855adca414cae3258"
+checksum = "40f2166cc54c410ddc0d0dafb3cf8dd536bcbae6bddfcc12c020c5ee4de518de"
 dependencies = [
  "btuuid",
  "defmt 1.0.1",
@@ -1195,7 +1195,7 @@ dependencies = [
 [[package]]
 name = "nrf-mpsl"
 version = "0.3.0"
-source = "git+https://github.com/alexmoon/nrf-sdc.git?rev=8ac007cbd4556e1123bee2479d66272ddf355844#8ac007cbd4556e1123bee2479d66272ddf355844"
+source = "git+https://github.com/alexmoon/nrf-sdc.git?rev=2c17fba12fcbf2061e6eeb6834c428aaaa5b4056#2c17fba12fcbf2061e6eeb6834c428aaaa5b4056"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -1211,7 +1211,7 @@ dependencies = [
 [[package]]
 name = "nrf-mpsl-sys"
 version = "0.2.1"
-source = "git+https://github.com/alexmoon/nrf-sdc.git?rev=8ac007cbd4556e1123bee2479d66272ddf355844#8ac007cbd4556e1123bee2479d66272ddf355844"
+source = "git+https://github.com/alexmoon/nrf-sdc.git?rev=2c17fba12fcbf2061e6eeb6834c428aaaa5b4056#2c17fba12fcbf2061e6eeb6834c428aaaa5b4056"
 dependencies = [
  "bindgen",
  "doxygen-rs",
@@ -1230,7 +1230,7 @@ dependencies = [
 [[package]]
 name = "nrf-sdc"
 version = "0.4.0"
-source = "git+https://github.com/alexmoon/nrf-sdc.git?rev=8ac007cbd4556e1123bee2479d66272ddf355844#8ac007cbd4556e1123bee2479d66272ddf355844"
+source = "git+https://github.com/alexmoon/nrf-sdc.git?rev=2c17fba12fcbf2061e6eeb6834c428aaaa5b4056#2c17fba12fcbf2061e6eeb6834c428aaaa5b4056"
 dependencies = [
  "bt-hci",
  "critical-section",
@@ -1248,7 +1248,7 @@ dependencies = [
 [[package]]
 name = "nrf-sdc-sys"
 version = "0.2.1"
-source = "git+https://github.com/alexmoon/nrf-sdc.git?rev=8ac007cbd4556e1123bee2479d66272ddf355844#8ac007cbd4556e1123bee2479d66272ddf355844"
+source = "git+https://github.com/alexmoon/nrf-sdc.git?rev=2c17fba12fcbf2061e6eeb6834c428aaaa5b4056#2c17fba12fcbf2061e6eeb6834c428aaaa5b4056"
 dependencies = [
  "bindgen",
  "doxygen-rs",
@@ -1955,8 +1955,9 @@ dependencies = [
 
 [[package]]
 name = "trouble-host"
-version = "0.5.1"
-source = "git+https://github.com/embassy-rs/trouble.git?rev=9392c9638ca9e8e518a1335808b7c057ee549977#9392c9638ca9e8e518a1335808b7c057ee549977"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1df7817cead4b83dfbeeaa59736ecbc97c30b21dc3bfc0cc2ce8a6687f70b37a"
 dependencies = [
  "bt-hci",
  "defmt 1.0.1",
@@ -1974,8 +1975,9 @@ dependencies = [
 
 [[package]]
 name = "trouble-host-macros"
-version = "0.3.0"
-source = "git+https://github.com/embassy-rs/trouble.git?rev=9392c9638ca9e8e518a1335808b7c057ee549977#9392c9638ca9e8e518a1335808b7c057ee549977"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d809ae05f510cf8f1d863749281eb28e049d9ae4ad52d92ea7a0ac068a0e17c"
 dependencies = [
  "convert_case 0.8.0",
  "darling",

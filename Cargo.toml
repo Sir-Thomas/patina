@@ -7,7 +7,7 @@ repository = "https://github.com/Sir-Thomas/patina"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-bt-hci = { version = "0.7.0", default-features = false, features = ["defmt", "embassy-time"] }
+bt-hci = { version = "0.8.0", default-features = false, features = ["defmt", "embassy-time"] }
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.5"
 defmt = "1.0.1"
@@ -33,13 +33,12 @@ pinetime-bsp = { path = "../pinetime-bsp", features = ["defmt"] }
 spi-memory-async = "0.2.0"
 static_cell = "2.1.1"
 time = { version = "0.3.46", default-features = false }
-trouble-host = { version = "0.5.1", features = ["defmt", "gatt", "peripheral"] }
+trouble-host = { version = "0.6.0", features = ["defmt", "gatt", "peripheral"] }
 u8g2-fonts = { version = "0.7.2", features = ["embedded_graphics_textstyle"] }
 
 [patch.crates-io]
 lcd-async = { git = "https://github.com/okhsunrog/lcd-async.git", rev = "50efe0a30a4c68a1502049556b2ffb27c13b9539" }
-nrf-sdc = { git = "https://github.com/alexmoon/nrf-sdc.git", rev = "8ac007cbd4556e1123bee2479d66272ddf355844" }
-trouble-host = { git = "https://github.com/embassy-rs/trouble.git", rev = "9392c9638ca9e8e518a1335808b7c057ee549977"}
+nrf-sdc = { git = "https://github.com/alexmoon/nrf-sdc.git", rev = "2c17fba12fcbf2061e6eeb6834c428aaaa5b4056" }
 
 [profile.release]
 debug = 2

@@ -56,11 +56,13 @@ struct DfuDevice<'a> {
 
 #[embassy_executor::task]
 pub async fn ble_runner(bluetooth: BleController, flash: Flash<SpiDevice<'static, NoopRawMutex, Spim<'static>, Output<'static>>, XT25F32B, Delay>, spawner: Spawner) {
-    let address: Address = Address::random([0xff, 0x8f, 0x1a, 0x05, 0xe4, 0xff]);
-
     let ficr = embassy_nrf::pac::FICR;
     let part = ficr.info().part().read().part().to_bits();
     let variant = ficr.info().variant().read().variant().to_bits();
+    
+    let high = u64::from((ficr.deviceaddr(1).read() & 0x0000ffff) | 0x0000c000);
+    let addr = high << 32 | u64::from(ficr.deviceaddr(0).read());
+    let address = Address::random(addr.to_le_bytes()[..6].try_into().unwrap());
 
     let hw_info = HardwareInfo {
         part,

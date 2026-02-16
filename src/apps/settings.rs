@@ -81,8 +81,7 @@ impl WatchApp for SettingsApp {
                 let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
                 let mut string = String::<256>::new();
                 write!(
-                    string, "Firmware: {}\nVersion: {}\nValidated: {}\nBattery: {}V",
-                    env!("CARGO_PKG_NAME"),
+                    string, "Firmware: Patina\nVersion: {}\nValidated: {}\nBattery: {}V",
                     env!("CARGO_PKG_VERSION"),
                     validated,
                     ctx.battery().2 as f32 / 1000.0,

@@ -28,11 +28,20 @@ macro_rules! define_apps {
             use crate::apps::$module::*;
         )*
 
-        #[allow(unused)] // TODO: Remove these allows
         #[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
         pub enum AppId {
             $($id,)*
         }
+        
+        impl AppId {
+            pub fn is_launchable(&self) -> bool {
+                !matches!(self, AppId::AppMenu | AppId::Clock | AppId::Settings)
+            }
+        }
+        
+        pub const APP_COUNT: usize = [$(stringify!($id)),*].len();
+        
+        pub const ALL_APPS: &[AppId] = &[$(AppId::$id),*];
         
         pub enum AppInstance {
             $($id($type),)*

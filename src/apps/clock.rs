@@ -139,6 +139,9 @@ impl WatchApp for ClockApp {
                     TouchGesture::SwipeDown => {
                         EventResponse::SwitchApp(AppId::Settings)
                     }
+                    TouchGesture::SwipeUp => {
+                        EventResponse::SwitchApp(AppId::AppMenu)
+                    }
                     _ => EventResponse::Ignore,
                 }
             },
@@ -263,7 +266,7 @@ async fn draw_battery_icon(level: u8, charging: bool, display_area: &Rectangle, 
             ctx.draw(&icon, Rgb565::BLACK).await;
         },
         (0..10, false) => {
-            let icon = mdi::BatteryAlert::new(Rgb565::GREEN);
+            let icon = mdi::BatteryAlertVariantOutline::new(Rgb565::RED);
             let icon = Image::new(&icon, Point::zero());
             let icon = icon.align_to(display_area, horizontal::Right, vertical::Top);
             ctx.draw(&icon, Rgb565::BLACK).await;

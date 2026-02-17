@@ -3,3 +3,4 @@
 /scripts/imgtool
 /scripts/imgtool.py
 /images
+Justfile.local

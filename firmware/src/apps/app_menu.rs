@@ -1,3 +1,4 @@
+use embedded_text::{alignment::VerticalAlignment, style::TextBoxStyleBuilder};
 use heapless::format;
 use pinetime_bsp::touch::TouchEvent;
 
@@ -47,11 +48,15 @@ impl AppMenuApp {
         if index < self.applist.len() {
             string = format!("{:?}", self.applist[index]).unwrap();
         }
-        let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-        let textbox = TextBox::new(
+        let text_style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
+        let centered = TextBoxStyleBuilder::new()
+            .vertical_alignment(VerticalAlignment::Middle)
+            .build();
+        let textbox = TextBox::with_textbox_style(
             string.as_str(),
             Rectangle::new(Point::new(0, i as i32 * 60), Size::new(240, 60)),
-            style,
+            text_style,
+            centered,
         );
         ctx.draw(&textbox, Rgb565::BLACK).await;
     }

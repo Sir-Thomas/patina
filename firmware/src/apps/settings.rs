@@ -69,7 +69,7 @@ impl WatchApp for SettingsApp {
             },
             SettingsScreen::Flashlight => {
                 ctx.set_brightness(BrightnessLevel::High);
-                ctx.fill_display(Rgb565::WHITE).await;
+                ctx.fill_display(Rgb565::WHITE);
                 let flashlight_icon = mdi::size48px::Flashlight::new(Rgb565::CSS_LIGHT_GRAY);
                 let flashlight_icon = Image::new(&flashlight_icon, Point::zero())
                     .align_to(&display_area, horizontal::Center, vertical::Center);

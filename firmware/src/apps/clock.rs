@@ -142,7 +142,7 @@ impl WatchApp for ClockApp {
                         EventResponse::SwitchApp(AppId::Settings)
                     }
                     TouchGesture::SwipeUp => {
-                        EventResponse::SwitchApp(AppId::AppMenu)
+                        EventResponse::SwitchApp(AppId::BuoyantAppMenu)
                     }
                     _ => EventResponse::Ignore,
                 }

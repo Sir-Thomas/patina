@@ -54,7 +54,7 @@ impl AppContext {
         CHANGE_DISPLAY_STATE.signal(true);
         self.screen_on = true;
         self.backlight.enable();
-        self.display.wake().await;
+        self.display.wake();
     }
 
     pub async fn turn_off_display(&mut self) {
@@ -63,34 +63,39 @@ impl AppContext {
         self.screen_on = false;
         self.backlight.disable();
         self.clear_display().await;
-        self.display.sleep().await;
+        self.display.sleep();
     }
 
     pub async fn clear_display(&mut self) {
         info!("[Context] Clearing display");
-        self.display.clear(Rgb565::BLACK).await;
+        self.display.clear(Rgb565::BLACK);
     }
 
-    pub async fn fill_display(&mut self, color: Rgb565) {
+    pub fn fill_display(&mut self, color: Rgb565) {
         info!("[Context] Filling display with color");
-        self.display.clear(color).await;
+        self.display.clear(color);
     }
 
-    pub async fn draw<T: Drawable<Color = Rgb565> + Dimensions>(
+    pub async fn draw<T: Drawable<Color = Rgb565>>(
         &mut self,
         drawable: &T,
-        background: Rgb565
+        background: Rgb565,
     ) {
-        self.display.draw(drawable, background).await;
+        // self.fill_display(background);
+        self.display.draw(drawable); //, background).await;
     }
 
-    pub async fn draw_view<T: Drawable<Color = Rgb565> + View>(
-        &mut self,
-        view: &T,
-        background: Rgb565
-    ) {
-        self.display.draw_view(view, background).await;
-    }
+    // pub async fn draw_screen(&mut self, drawable: &impl Drawable<Color = Rgb565>) {
+    //     self.display.draw_screen(drawable).await;
+    // }
+
+    // pub async fn draw_view<T: Drawable<Color = Rgb565> + View>(
+    //     &mut self,
+    //     view: &T,
+    //     background: Rgb565
+    // ) {
+    //     self.display.draw_view(view, background).await;
+    // }
 
     pub fn time(&mut self) -> PrimitiveDateTime {
         let current_time = self.current_time_watcher.try_get().unwrap();

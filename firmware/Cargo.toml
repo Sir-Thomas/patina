@@ -9,6 +9,7 @@ publish.workspace = true
 
 [dependencies]
 bt-hci = { version = "0.8.0", default-features = false, features = ["defmt", "embassy-time"] }
+buoyant = "0.7.0-alpha.3"
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.5"
 defmt = "1.0.1"

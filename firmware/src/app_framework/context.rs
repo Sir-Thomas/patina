@@ -76,18 +76,17 @@ impl AppContext {
         self.display.clear(color);
     }
 
-    pub async fn draw<T: Drawable<Color = Rgb565>>(
+    pub async fn draw<T: Drawable<Color = Rgb565> + Dimensions>(
         &mut self,
         drawable: &T,
         background: Rgb565,
     ) {
-        // self.fill_display(background);
-        self.display.draw(drawable); //, background).await;
+        self.display.draw(drawable, background).await;
     }
 
-    // pub async fn draw_screen(&mut self, drawable: &impl Drawable<Color = Rgb565>) {
-    //     self.display.draw_screen(drawable).await;
-    // }
+    pub async fn draw_screen(&mut self, drawable: &impl Drawable<Color = Rgb565>) {
+        self.display.draw_screen(drawable).await;
+    }
 
     // pub async fn draw_view<T: Drawable<Color = Rgb565> + View>(
     //     &mut self,

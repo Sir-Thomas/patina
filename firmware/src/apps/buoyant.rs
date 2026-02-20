@@ -96,7 +96,7 @@ impl WatchApp for BuoyantApp {
         let mut captures = ();
         let clock = self.clock();
         let view = clock.as_drawable(Size::new(240,240), Rgb565::WHITE, &mut captures);
-        ctx.draw(&view, Rgb565::BLACK).await;
+        ctx.draw_screen(&view).await;
     }
 }
 

@@ -34,6 +34,7 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     info!("[App Manager] All tasks spawned, waiting for first event");
     // Wait for first systick to ensure clock is available
     receiver.receive().await;
+    receiver.receive().await;
     app_manager.init().await;
     info!("[App Manager] Starting event loop");
 

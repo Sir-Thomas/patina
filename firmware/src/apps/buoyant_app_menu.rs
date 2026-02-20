@@ -52,7 +52,7 @@ impl BuoyantAppMenuApp {
         if_view!((index < self.applist.len()) {
             ZStack::new((
                 Capsule.foreground_color(Rgb565::GREEN),
-                Text::new(string, &FONT_10X20).foreground_color(Rgb565::BLACK)
+                Text::new(string, &FONT_10X20).foreground_color(Rgb565::WHITE)
                     .padding(Edges::Leading, 30),
             )).with_horizontal_alignment(HorizontalAlignment::Leading)
         })
@@ -101,6 +101,6 @@ impl WatchApp for BuoyantAppMenuApp {
             self.draw_app(3),
         )).with_spacing(10);
         let view = menu.as_drawable(Size::new(240,240), Rgb565::WHITE, &mut captures);
-        ctx.draw(&view, Rgb565::BLACK).await;
+        ctx.draw_screen(&view).await;
     }
 }

@@ -15,13 +15,8 @@ mod tasks;
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    // MCUboot only - comment out this block for running on baremetal
-    info!("[main] Updating vector table offset");
-    let mut p = cortex_m::Peripherals::take().unwrap();
-    unsafe {
-        p.SCB.invalidate_icache();
-        p.SCB.vtor.write(0x8200);
-    }
+    #[cfg(not(feature = "baremetal"))]
+    update_vtable();
 
     info!("[main] Initializing PineTime");
     let mut config = embassy_nrf::config::Config::default();
@@ -29,6 +24,7 @@ async fn main(spawner: Spawner) {
     config.gpiote_interrupt_priority = Priority::P2;
     config.time_interrupt_priority = Priority::P2;
     let mut board = PineTime::new(config).await;
+    #[cfg(not(feature = "baremetal"))] // TODO: Turn this into a setting
     board.set_screen_orientation(ScreenOrientation::Flipped).await;
 
     info!("[main] Spawning systick task");
@@ -36,4 +32,13 @@ async fn main(spawner: Spawner) {
 
     info!("[main] Spawning app manager task");
     spawner.must_spawn(tasks::app_manager::app_manager(spawner, board));
+}
+
+fn update_vtable() {
+    info!("[main] Updating vector table offset");
+    let mut p = cortex_m::Peripherals::take().unwrap();
+    unsafe {
+        p.SCB.invalidate_icache();
+        p.SCB.vtor.write(0x8200);
+    }
 }

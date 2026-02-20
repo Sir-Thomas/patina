@@ -37,3 +37,5 @@ time = { version = "0.3.46", default-features = false }
 trouble-host = { version = "0.6.0", features = ["defmt", "gatt", "peripheral"] }
 u8g2-fonts = { version = "0.7.2", features = ["embedded_graphics_textstyle"] }
 
+[features]
+baremetal = []

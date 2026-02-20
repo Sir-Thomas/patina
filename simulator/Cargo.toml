@@ -1,5 +1,11 @@
 [package]
 name = "patina-simulator"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
 
 [dependencies]
 embedded-graphics-simulator = "0.8.0"

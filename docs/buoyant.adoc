@@ -1,0 +1,18 @@
+= Buoyant
+
+I have a branch where I was testing out the buoyant crate. 
+It seems like a nice framework that would simplify a lot of layout and app development.
+It can create clean layouts with an interface inspired by SwiftUI, but within the constraints of a microcontroller.
+Unfortunately, it does not seem to work with our current display functions.
+Images and shapes will only display in the first framebuffer, but not any others.
+
+If we can fix this bug, I would love to use Buoyant.
+I tried to test it with the non-async driver, but it still is not a great experience.
+We either have to clear the screen each frame, or put a background behind each element.
+The background is drawn separately from the elements, so there is still a noticable flicker when the components update.
+
+A new hardware revision of the PineTime could solve these issues if we get faster SPI or more RAM.
+If we can push pixels to the display fast enough, the flicker might be reduced to the point where it is no longer noticable.
+Likewise, if we have enough RAM for a full framebuffer, we could draw to it and update the whole screen at one time.
+
+If something changes, I will come back and re-implement buoyant, but until then, we will have to stick with raw embedded-graphics.

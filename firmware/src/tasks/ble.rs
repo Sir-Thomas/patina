@@ -1,19 +1,20 @@
 #![allow(dead_code)]
 // Static services like DeviceInformationService trigger unused code warnings
 
+use core::array::TryFromSliceError;
 use defmt::{debug, info};
 use embassy_embedded_hal::{flash::partition::Partition, shared_bus::asynch::spi::SpiDevice};
 use embassy_executor::Spawner;
 use embassy_nrf::{gpio::Output, spim::Spim};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_time::{Delay, Timer};
-use heapless::Vec;
+use heapless::{CapacityError, Vec};
 use nrf_dfu_target::prelude::*;
 use nrf_sdc::{SoftdeviceController, mpsl::MultiprotocolServiceLayer};
 use pinetime_bsp::{ble::BleController, flash::XT25F32B};
 use spi_memory_async::series25::Flash;
 use static_cell::StaticCell;
-use trouble_host::{HostResources, prelude::*};
+use trouble_host::{Error, HostResources, prelude::*};
 use crate::{
     app_framework::SystemEvent,
     signals::EVENT_QUEUE,
@@ -62,7 +63,7 @@ pub async fn ble_runner(bluetooth: BleController, flash: Flash<SpiDevice<'static
     
     let high = u64::from((ficr.deviceaddr(1).read() & 0x0000ffff) | 0x0000c000);
     let addr = high << 32 | u64::from(ficr.deviceaddr(0).read());
-    let address = Address::random(addr.to_le_bytes()[..6].try_into().unwrap());
+    let address = Address::random(addr.to_le_bytes()[..6].try_into().expect("Address should be valid"));
 
     let hw_info = HardwareInfo {
         part,
@@ -92,11 +93,15 @@ pub async fn ble_runner(bluetooth: BleController, flash: Flash<SpiDevice<'static
 
     let Host { mut peripheral, runner, .. } = stack.build();
 
-    let gatt_server = PatinaGattServer::new_with_config(
+    let Ok(gatt_server) = PatinaGattServer::new_with_config(
         GapConfig::Peripheral(
             PeripheralConfig { name: NAME, appearance: &appearance::watch::SMARTWATCH }
         )
-    ).unwrap();
+    ) else {
+        info!("[ble] Failed to create GATT Server");
+        info!("[ble] Killing BLE Service");
+        return;
+    };
 
     let server = SERVER.init(gatt_server);
 
@@ -117,7 +122,7 @@ async fn mpsl_task(mpsl: &'static MultiprotocolServiceLayer<'static>) -> ! {
 
 #[embassy_executor::task]
 async fn host_task(mut runner: Runner<'static, SoftdeviceController<'static>, DefaultPacketPool>) {
-    runner.run().await.unwrap();
+    runner.run().await.expect("BLE runner should not fail");
 }
 
 async fn advertise<'a, 'b, 'c, C: Controller>(
@@ -141,7 +146,7 @@ async fn advertise<'a, 'b, 'c, C: Controller>(
             adv_data: &advertiser_data[0..advertiser_len],
             scan_data: &[],
         },
-    ).await.unwrap();
+    ).await?;
     info!("[ble] Advertising");
     let conn = advertiser.accept().await?;
     sync_time(stack, conn.clone()).await;
@@ -164,14 +169,37 @@ async fn connection_events(
                 break;
             }
             GattConnectionEvent::Gatt { event } => {
-                handle_gatt_event(event, connection, server, dfu).await;
-                // match event.accept() {
-                //     Ok(reply) => reply.send().await,
-                //     Err(e) => info!("[gatt] error proccessing request: {:?}", e),
-                // }
+                match handle_gatt_event(event, connection, server, dfu).await {
+                     Ok(_) => {},
+                     Err(_e) => info!("[gatt] error proccessing request"),
+                }
             }
             _ => {}
         }
+    }
+}
+
+enum BleError {
+    CapacityError,
+    TroubleHostError,
+    TryFromSliceError,
+}
+
+impl From<TryFromSliceError> for BleError {
+    fn from(_: TryFromSliceError) -> Self {
+        BleError::TryFromSliceError
+    }
+}
+
+impl From<Error> for BleError {
+    fn from(_: Error) -> Self {
+        BleError::TroubleHostError
+    }
+}
+    
+impl From<CapacityError> for BleError {
+    fn from(_: CapacityError) -> Self {
+        BleError::CapacityError
     }
 }
 
@@ -180,17 +208,20 @@ async fn handle_gatt_event(
     connection: &GattConnection<'_, '_, DefaultPacketPool>,
     server: &'_ PatinaGattServer<'_>,
     dfu: &mut DfuDevice<'_>,
-) {
+) -> Result<(), BleError> {
     match event {
         GattEvent::Read(event) => {
-            event.accept().unwrap();
+            event.accept()?;
             info!("[gatt] read request");
+            Ok(())
         }
         GattEvent::Write(event) => {
-            handle_write_event(event, connection, server, dfu).await;
+            handle_write_event(event, connection, server, dfu).await?;
+            Ok(())
         }
         _ => {
             info!("[gatt] other event");
+            Ok(())
         }
     }
 }
@@ -200,25 +231,24 @@ async fn handle_write_event(
     connection: &GattConnection<'_, '_, DefaultPacketPool>,
     server: &'_ PatinaGattServer<'_>,
     dfu: &mut DfuDevice<'_>,
-) {
+) -> Result<(), BleError> {
     let handle = event.handle();
-
     if handle == server.cts.current_time.handle {
-        let data: [u8; 10] = event.data().try_into().unwrap();
-        let reply = event.accept().unwrap();
+        let data: [u8; 10] = event.data().try_into()?;
+        let reply = event.accept()?;
         debug!("[gatt] Write Event to Time Characteristic: {:?}", data);
         update_time(data);
         reply.send().await;
     } else if handle == server.nordic_dfu.control.handle {
-        let data: Vec<u8, 256> = event.data().try_into().unwrap();
-        let reply = event.accept().unwrap();
+        let data: Vec<u8, 256> = event.data().try_into()?;
+        let reply = event.accept()?;
         debug!("[gatt] Write Event to DFU Control Point: {:?}", data);
         if let Ok((request, _)) = DfuRequest::decode(&data) {
             info!("[ble] request: {:?}", request);
             let (response, status) = dfu.target.process(request, &mut dfu.flash).await;
             let mut buf: [u8; 32] = [0; 32];
             if let Ok(len) = response.encode(&mut buf[..]) {
-                let response = Vec::from_slice(&buf[..len]).unwrap();
+                let response = Vec::from_slice(&buf[..len])?;
                 if let Err(e) = server.nordic_dfu.control.notify(&connection, &response).await {
                     info!("[gatt] Error notifying control: {:?}", e);
                 }
@@ -233,15 +263,15 @@ async fn handle_write_event(
         }
         reply.send().await;
     } else if handle == server.nordic_dfu.packet.handle {
-        let data: Vec<u8, 256> = event.data().try_into().unwrap();
-        let reply = event.accept().unwrap();
+        let data: Vec<u8, 256> = event.data().try_into()?;
+        let reply = event.accept()?;
         debug!("[gatt] Write Event to DFU Packet: {:?}", data);
         let request = DfuRequest::Write { data: &data[..] };
         debug!("[ble] write request: {:?}", request);
         let (response, status) = dfu.target.process(request, &mut dfu.flash).await;
         let mut buf: [u8; 32] = [0; 32];
         if let Ok(len) = response.encode(&mut buf[..]) {
-            let response = Vec::from_slice(&buf[..len]).unwrap();
+            let response = Vec::from_slice(&buf[..len])?;
             if let Err(e) = server.nordic_dfu.control.notify(&connection, &response).await {
                 info!("[gatt] Error notifying control: {:?}", e);
             }
@@ -258,4 +288,5 @@ async fn handle_write_event(
     } else {
         info!("[gatt] Write Event to unknown handle: {:?}, data: {:?}", handle, event.data());
     }
+    Ok(())
 }

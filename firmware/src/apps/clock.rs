@@ -186,7 +186,7 @@ impl WatchApp for ClockApp {
 
 async fn weekday(weekday: time::Weekday, display_area: &Rectangle, ctx: &mut AppContext, sm_text_style: U8g2TextStyle<Rgb565>) {
     let mut string = String::<3>::new();
-    write!(string, "{:.3}", weekday).unwrap();
+    write!(string, "{:.3}", weekday).expect("String will always be valid");
     let date_text = TextBox::with_alignment(
         string.as_str(),
         Rectangle::new(Point::zero(), Size::new(50, 34)),
@@ -205,27 +205,27 @@ async fn battery_icon(level: u8, charging: bool, display_area: &Rectangle, ctx: 
         (_, true) => {
             let icon = mdi::BatteryCharging::new(Rgb565::GREEN);
             let icon = Image::new(&icon, Point::zero());
-            icon.draw(&mut fbuf).unwrap();
+            icon.draw(&mut fbuf).expect("Drawing should never fail");
         },
         (60..=u8::MAX, false) => {
             let icon = mdi::BatteryHigh::new(Rgb565::GREEN);
             let icon = Image::new(&icon, Point::zero());
-            icon.draw(&mut fbuf).unwrap();
+            icon.draw(&mut fbuf).expect("Drawing should never fail");
         },
         (30..60, false) => {
             let icon = mdi::BatteryMedium::new(Rgb565::GREEN);
             let icon = Image::new(&icon, Point::zero());
-            icon.draw(&mut fbuf).unwrap();
+            icon.draw(&mut fbuf).expect("Drawing should never fail");
         },
         (10..30, false) => {
             let icon = mdi::BatteryLow::new(Rgb565::GREEN);
             let icon = Image::new(&icon, Point::zero());
-            icon.draw(&mut fbuf).unwrap();
+            icon.draw(&mut fbuf).expect("Drawing should never fail");
         },
         (0..10, false) => {
             let icon = mdi::BatteryAlertVariantOutline::new(Rgb565::RED);
             let icon = Image::new(&icon, Point::zero());
-            icon.draw(&mut fbuf).unwrap();
+            icon.draw(&mut fbuf).expect("Drawing should never fail");
         },
     }
     let image = ImageRawBE::<Rgb565>::new(fbuf.as_bytes(), 24);
@@ -241,11 +241,11 @@ async fn bluetooth_icon(connected: bool, display_area: &Rectangle, ctx: &mut App
     if connected {
         let icon = mdi::BluetoothConnect::new(Rgb565::GREEN);
         let icon = Image::new(&icon, Point::zero());
-        icon.draw(&mut fbuf).unwrap();
+        icon.draw(&mut fbuf).expect("Drawing should never fail");
     } else {
         let icon = mdi::Bluetooth::new(Rgb565::GREEN);
         let icon = Image::new(&icon, Point::zero());
-        icon.draw(&mut fbuf).unwrap();
+        icon.draw(&mut fbuf).expect("Drawing should never fail");
     }
     let image = ImageRawBE::<Rgb565>::new(fbuf.as_bytes(), 24);
     let image = Image::new(&image, Point::zero())
@@ -256,7 +256,8 @@ async fn bluetooth_icon(connected: bool, display_area: &Rectangle, ctx: &mut App
 
 async fn hours_minutes(current_time: PrimitiveDateTime, display_area: &Rectangle, ctx: &mut AppContext, lg_digit_style: SevenSegmentStyle<Rgb565>) {
     let mut string = String::<5>::new();
-    write!(string, "{:02}:{:02}", to_12_hr(current_time.hour()), current_time.minute()).unwrap();
+    write!(string, "{:02}:{:02}", to_12_hr(current_time.hour()), current_time.minute())
+        .expect("Hours and minutes will always be valid for formatting");
     let hours_minutes_text = TextBox::with_alignment(
         string.as_str(),
         Rectangle::new(Point::zero(), HOURS_MINUTES_SIZE),
@@ -276,7 +277,8 @@ fn to_12_hr(hour: u8) -> u8 {
 
 async fn date(current_time: PrimitiveDateTime, display_area: &Rectangle, ctx: &mut AppContext, sm_digit_style: SevenSegmentStyle<Rgb565>) {
     let mut string = String::<11>::new();
-    write!(string, "{:4}-{:02}-{:02}", current_time.year(), current_time.month() as u8, current_time.day()).unwrap();
+    write!(string, "{:4}-{:02}-{:02}", current_time.year(), current_time.month() as u8, current_time.day())
+        .expect("Date will always be valid for formatting");
     let date_text = TextBox::with_alignment(
         string.as_str(),
         Rectangle::new(Point::zero(), DATE_SIZE),
@@ -289,7 +291,7 @@ async fn date(current_time: PrimitiveDateTime, display_area: &Rectangle, ctx: &m
 
 async fn seconds(seconds: u8, display_area: &Rectangle, ctx: &mut AppContext, sm_digit_style: SevenSegmentStyle<Rgb565>) {
     let mut string = String::<2>::new();
-    write!(string, "{:02}", seconds).unwrap();
+    write!(string, "{:02}", seconds).expect("Seconds will always be valid for formatting");
     let seconds_text = TextBox::new(
         string.as_str(),
         Rectangle::new(Point::zero(), SEC_SIZE),

@@ -9,5 +9,7 @@ pub struct CurrentTimeService {
 }
 
 pub fn update_time(time: [u8; 10]) {
-    ADJUST_TIME.signal(parse_time(time).unwrap());
+    if let Some(time) = parse_time(time) {
+        ADJUST_TIME.signal(time);
+    }
 }

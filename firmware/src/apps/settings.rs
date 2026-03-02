@@ -85,7 +85,7 @@ impl WatchApp for SettingsApp {
                     env!("CARGO_PKG_VERSION"),
                     validated,
                     ctx.battery().2 as f32 / 1000.0,
-                ).unwrap();
+                ).expect("All inputs are formattable");
                 let text = TextBox::new(string.as_str(), bounds, style);
                 ctx.draw(&text, Rgb565::BLACK).await;
                 if !validated {

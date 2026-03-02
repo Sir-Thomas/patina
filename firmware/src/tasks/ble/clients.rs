@@ -12,7 +12,10 @@ pub async fn sync_time<'a>(
     conn: Connection<'a, DefaultPacketPool>
 ) {
     info!("[ble] synchronizing time");
-    let client = GattClient::<_, DefaultPacketPool, 10>::new(stack, &conn).await.unwrap();
+    let Ok(client) = GattClient::<_, DefaultPacketPool, 10>::new(stack, &conn).await else {
+        info!("[ble] GattClient failed to start");
+        return;
+    };
     match select(
         client.task(),
         with_timeout(Duration::from_secs(8), async {

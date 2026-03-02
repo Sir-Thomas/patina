@@ -36,7 +36,7 @@ async fn main(spawner: Spawner) {
 
 fn update_vtable() {
     info!("[main] Updating vector table offset");
-    let mut p = cortex_m::Peripherals::take().unwrap();
+    let mut p = cortex_m::Peripherals::take().expect("Cortex-M peripherals should always be available");
     unsafe {
         p.SCB.invalidate_icache();
         p.SCB.vtor.write(0x8200);

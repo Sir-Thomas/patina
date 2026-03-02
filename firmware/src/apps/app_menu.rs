@@ -46,7 +46,7 @@ impl AppMenuApp {
         let index = self.scroll_offset * 4 + i;
         let mut string = String::<16>::new();
         if index < self.applist.len() {
-            string = format!("{:?}", self.applist[index]).unwrap();
+            string = format!("{:?}", self.applist[index]).expect("App names are formattable");
         }
         let text_style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
         let centered = TextBoxStyleBuilder::new()

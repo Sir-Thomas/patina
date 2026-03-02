@@ -24,7 +24,7 @@ impl WatchApp for StopwatchApp {
         let bounds = Rectangle::new(Point::zero(), Size::new(240, 240));
         let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
         let mut string = String::<32>::new();
-        write!(string, "Stopwatch App").unwrap();
+        write!(string, "Stopwatch App").expect("Name can be formatted");
         let text = TextBox::new(string.as_str(), bounds, style);
         ctx.draw(&text, Rgb565::BLACK).await;
     }

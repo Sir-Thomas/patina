@@ -93,7 +93,7 @@ impl AppContext {
     }
 
     pub fn time(&mut self) -> PrimitiveDateTime {
-        let current_time = self.current_time_watcher.try_get().unwrap();
+        let current_time = self.current_time_watcher.try_get().expect("There will always be a valid time in the watcher");
         current_time
     }
     #[allow(dead_code)] // TODO: Decide whether to keep this
@@ -106,7 +106,7 @@ impl AppContext {
     }
 
     pub fn battery(&self) -> (u8, bool, u32) {
-        BATTERY.try_get().unwrap()
+        BATTERY.try_get().expect("There will always be a valid battery value")
     }
     
     pub fn brightness(&self) -> BrightnessLevel {

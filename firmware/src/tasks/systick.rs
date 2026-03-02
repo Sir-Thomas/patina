@@ -23,7 +23,8 @@ pub async fn systick_task() {
         if let Some(new_time) = result.ok() {
             debug!("[Systick] Adjusting time to: {:?}", new_time);
             // FIXME: This will panic after approximately 3 years of uptime due to i64 overflow
-            boot_time = new_time - time::Duration::milliseconds(Instant::now().as_millis().try_into().unwrap());
+            boot_time = new_time - time::Duration::milliseconds(Instant::now().as_millis().try_into()
+                .expect("Millis can be converted from u64 to i64 until ~3yrs uptime"));
         }
     }
 }

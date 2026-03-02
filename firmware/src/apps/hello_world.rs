@@ -52,7 +52,7 @@ impl WatchApp for HelloWorldApp {
         let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
         // write our string
         let mut string = String::<32>::new();
-        write!(string, "Hello, World!\nCount: {}", self.count).unwrap();
+        write!(string, "Hello, World!\nCount: {}", self.count).expect("Count can be formatted");
         // create our text box
         let text = TextBox::new(string.as_str(), bounds, style);
         // draw the text to the screen

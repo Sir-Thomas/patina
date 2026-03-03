@@ -14,4 +14,4 @@ CAUTION: The App API is not stable yet. While it is our goal to provide a consis
 * Give Feedback
 ** Use the OS in your daily life. Find out what works well and what doesn't and let us know. We have lots of plans for future improvements and added functionality, but it always helps to get a broader idea of what people want and use.
 
-WARNING: The OS is not stable yet. Bluetooth, while high on the priority list, has not yet been implemented. It is possible to flash to a sealed PineTime, but this will disable bluetooth completely. To update we must initiate a reboot, triggering the bootloader to swap back to InfiniTime. If you choose to go this route, do so at your own risk.
+WARNING: Bluetooth functionality is not well tested yet. The bootloader makes it hard to brick the device, but there is always a risk when flashing a sealed PineTime.

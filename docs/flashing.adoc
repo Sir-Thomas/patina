@@ -9,7 +9,7 @@ These instructions were tested on PopOS. They should work on any Linux device wi
 === Install required packages
 ----
 sudo usermod -a -G plugdev $USER
-sudo apt install rustup libudev-dev libclang-dev
+sudo apt install rustup libudev-dev libclang-dev just
 rustup default stable
 rustup target add thumbv7em-none-eabihf
 cargo install probe-rs-tools
@@ -38,55 +38,35 @@ pip install -r scripts/requirements.txt
 == Flashing Patina
 
 If you are not already in the Python venv, run `source .venv/bin/activate` before using any of these scripts.
+Commands are run with `Just` use `just --list` to see all available commands
 
-=== OTA
+=== just build
 
-Run `scripts/build_ota_zip.sh` to create a zip file that can be flashed using any existing companion app. The update file will be located at `images/patina-dfu.zip`.
+Builds an OTA update file that can be flashed to a watch running InfiniTime using any standard companion app.
+When flashing a watch running Patina, you will need to use the nRF Connect app.
 
-=== ST-Link
+Output: `images/patina-dfu.zip`
 
-Run `scripts/debug_run_on_mcuboot.sh` to flash an open PineTime running MCUboot and display logs from the device.
-Run `scripts/run_on_mcuboot.sh` to flash with logs disabled.
+=== just run-mcuboot
 
-I plan to create scripts to run on baremetal for quicker testing in the future.
+Builds an image and uploads it to a development watch using probe-rs
 
-NOTE: This may work with other programmers, but I only have tested it with the ST-Link.
+=== just run-baremetal
 
-== Archive - Do not use anything past this point
+Same as `run-mcuboot`, but overwrites mcuboot to boot directly into firmware. This speeds up boot time by about 5 seconds.
 
-=== Flash Bare Metal
-Must be using bare metal values for memory.x and comment out VTOR
+=== just debug-mcuboot
 
-----
-cargo run
-----
+Builds an image with logs enabled, then uses probe-rs to flash the image and connect to the debug interface.
 
-=== Flash MCUBoot
+=== just debug-baremetal
 
-----
-probe-rs erase --chip nRF52832_xxAA
-probe-rs download bootloader-1.0.1.bin --binary-format Binary --chip nRF52832_xxAA
-----
+Same as `debug-mcuboot`, but overwrites mcuboot to boot directly into firmware. This speeds up boot time by about 5 seconds.
 
-=== Build for MCUBoot and Flash
-Must be using MCUBoot values for memory.x and VTOR.
-----
-cargo objcopy --release -- -O binary patina.bin
-scripts/imgtool.py create --header-size 512 --align 4 --version 1.0.0 --slot-size 475136 --pad-header patina.bin patina-image.bin
-probe-rs download --chip nRF52832_xxAA --base-address 0x8000 --binary-format Binary patina-image.bin
-----
-You must be in the python venv to run the image tool.
-----
-source .venv/bin/activate
-----
+=== just flash-bootloader
 
-=== Debug while booting from MCUBoot
-----
-probe-rs attach --chip nRF52832_xxAA target/thumbv7em-none-eabihf/release/patina
-----
+Reflashes the mcuboot bootloader. Bootloader must be placed in `images/bootloader.bin`
 
-=== Generate zip for OTA flash
-You must be in the python venv to run adafruit-nrfutil.
-----
-adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application patina-image.bin patina-dfu.zip
-----
+=== just sim
+
+Not yet implemented. The goal is to have a simulator to allow for even faster iteration during app development.

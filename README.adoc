@@ -15,14 +15,11 @@ We strive to eliminate bugs and provide a seamless user experience.
 * Provide a **Stable API** for app development
 ** Once API is finalized, an app should never break with new versions of the firmware
 * Take full advantage of Rust's safety features
-** Minimize `unsafe` code
-** Wherever possible, eliminate `unwrap` and handle errors gracefully
 * Use reliable drivers that:
 ** Are documented well
 ** Tested thoroughly
 ** Provide stable APIs
 ** Work with Embassy's Async Runtime
-* If a reliable driver does not exist, we must create one
 
 === Extensibility
 

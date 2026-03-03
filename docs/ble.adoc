@@ -8,6 +8,8 @@ My initial plan was to re-implement all InfiniTime services so the device would 
 
 There is a downside. Since we are not pretending to be running InfiniTime, we will have to write our own companion apps and/or update existing apps that support our device. The flexibility this provides is ultimately worth the tradeoff.
 
+NOTE: GadgetBridge allows us to add an unsupported device. Long-press `Patina` and select `PineTime` in the dropdown to add the device.
+
 == Services and Characteristics
 
 .Services and Characteristics

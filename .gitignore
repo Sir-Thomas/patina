@@ -4,3 +4,4 @@
 /scripts/imgtool.py
 /images
 Justfile.local
+memory.x

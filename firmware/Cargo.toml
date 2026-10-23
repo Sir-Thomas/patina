@@ -9,6 +9,7 @@ publish.workspace = true
 
 [dependencies]
 bt-hci = { version = "0.8.0", default-features = false, features = ["defmt", "embassy-time"] }
+buoyant = "0.8.0-alpha.0"
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.5"
 defmt = "1.0.1"
@@ -35,7 +36,7 @@ spi-memory-async = "0.2.0"
 static_cell = "2.1.1"
 time = { version = "0.3.46", default-features = false }
 trouble-host = { version = "0.6.0", features = ["defmt", "gatt", "peripheral"] }
-u8g2-fonts = { version = "0.7.2", features = ["embedded_graphics_textstyle"] }
+u8g2-fonts = { version = "0.8.0", features = ["embedded_graphics_textstyle"] }
 
 [features]
 baremetal = []

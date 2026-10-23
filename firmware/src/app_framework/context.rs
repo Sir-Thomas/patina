@@ -10,8 +10,8 @@ use pinetime_bsp::vibrator::Vibrator;
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
 use time::PrimitiveDateTime;
 
-use crate::signals::{ADJUST_TIME, BATTERY, CHANGE_DISPLAY_STATE, CURRENT_TIME};
 use crate::app_framework::prelude::*;
+use crate::signals::{ADJUST_TIME, BATTERY, CHANGE_DISPLAY_STATE, CURRENT_TIME};
 
 const VALID_BIT_ADDRESS: u32 = 0x7BFE8;
 const VALID_BIT_VALUE: u32 = 1;
@@ -97,22 +97,27 @@ impl AppContext {
     // }
 
     pub fn time(&mut self) -> PrimitiveDateTime {
-        let current_time = self.current_time_watcher.try_get().expect("There will always be a valid time in the watcher");
+        let current_time = self
+            .current_time_watcher
+            .try_get()
+            .expect("There will always be a valid time in the watcher");
         current_time
     }
     #[allow(dead_code)] // TODO: Decide whether to keep this
     pub fn set_time(&mut self, new_time: PrimitiveDateTime) {
         ADJUST_TIME.signal(new_time);
     }
-    
+
     pub async fn short_vibration(&mut self) {
         self.vibrator.pulse(Duration::from_millis(15)).await;
     }
 
     pub fn battery(&self) -> (u8, bool, u32) {
-        BATTERY.try_get().expect("There will always be a valid battery value")
+        BATTERY
+            .try_get()
+            .expect("There will always be a valid battery value")
     }
-    
+
     pub fn brightness(&self) -> BrightnessLevel {
         self.backlight.brightness()
     }
@@ -133,14 +138,20 @@ impl AppContext {
         let value_ptr = VALID_BIT_ADDRESS as *const u32;
         let value = unsafe { value_ptr.read_volatile() };
         let valid = value == VALID_BIT_VALUE;
-        info!("[Context] Firmware Validation check at address {:#X}: value={:#X}, valid={}", VALID_BIT_ADDRESS, value, valid);
+        info!(
+            "[Context] Firmware Validation check at address {:#X}: value={:#X}, valid={}",
+            VALID_BIT_ADDRESS, value, valid
+        );
         valid
     }
 
     pub async fn validate_firmware(&self) {
         if !self.firmware_is_validated() {
             let mut flash = self.flash.lock().await;
-            if let Err(e) = flash.write(VALID_BIT_ADDRESS, &VALID_BIT_VALUE.to_le_bytes()).await {
+            if let Err(e) = flash
+                .write(VALID_BIT_ADDRESS, &VALID_BIT_VALUE.to_le_bytes())
+                .await
+            {
                 defmt::warn!("Error validating firmware: {:?}", e);
             }
         } else {

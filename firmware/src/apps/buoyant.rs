@@ -1,10 +1,16 @@
-use core::fmt::Write as _;
 use buoyant::{if_view, match_view, view::prelude::*};
+use core::fmt::Write as _;
 use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
-use embedded_icon::{Icon, NewIcon, mdi::size24px::{BatteryAlertVariantOutline, BatteryCharging, BatteryHigh, BatteryLow, BatteryMedium, Bluetooth, BluetoothConnect}};
+use embedded_icon::{
+    Icon, NewIcon,
+    mdi::size24px::{
+        BatteryAlertVariantOutline, BatteryCharging, BatteryHigh, BatteryLow, BatteryMedium,
+        Bluetooth, BluetoothConnect,
+    },
+};
 use heapless::String;
 use time::PrimitiveDateTime;
-use u8g2_fonts::{fonts, FontRenderer};
+use u8g2_fonts::{FontRenderer, fonts};
 
 use crate::app_framework::{AppContext, EventResponse, SystemEvent, WatchApp};
 static SPLEEN: FontRenderer = FontRenderer::new::<fonts::u8g2_font_spleen16x32_mr>();
@@ -59,19 +65,20 @@ impl WatchApp for BuoyantApp {
         (self.battery_level, self.battery_charging, _) = ctx.battery();
         self.bluetooth_connected = ctx.bluetooth_connected();
     }
-    
+
     async fn on_stop(&mut self, _ctx: &mut AppContext) {
         // Clean up app state
     }
 
-    async fn on_event(&mut self, event: SystemEvent, ctx: &mut AppContext) -> EventResponse{
+    async fn on_event(&mut self, event: SystemEvent, ctx: &mut AppContext) -> EventResponse {
         match event {
             SystemEvent::Tick => {
                 let current_time = ctx.time();
                 let (battery_level, battery_charging, _) = ctx.battery();
-                if current_time.second() != self.current_time.second() ||
-                   battery_level != self.battery_level ||
-                   battery_charging != self.battery_charging {
+                if current_time.second() != self.current_time.second()
+                    || battery_level != self.battery_level
+                    || battery_charging != self.battery_charging
+                {
                     self.current_time = current_time;
                     self.battery_level = battery_level;
                     self.battery_charging = battery_charging;
@@ -79,15 +86,15 @@ impl WatchApp for BuoyantApp {
                 } else {
                     EventResponse::Ignore
                 }
-            },
+            }
             SystemEvent::BluetoothConnected => {
                 self.bluetooth_connected = true;
                 EventResponse::Rerender
-            },
+            }
             SystemEvent::BluetoothDisconnected => {
                 self.bluetooth_connected = false;
                 EventResponse::Rerender
-            },
+            }
             _ => EventResponse::Ignore,
         }
     }
@@ -95,7 +102,7 @@ impl WatchApp for BuoyantApp {
     async fn render(&mut self, ctx: &mut AppContext) {
         let mut captures = ();
         let clock = self.clock();
-        let view = clock.as_drawable(Size::new(240,240), Rgb565::WHITE, &mut captures);
+        let view = clock.as_drawable(Size::new(240, 240), Rgb565::WHITE, &mut captures);
         ctx.draw_screen(&view).await;
     }
 }
@@ -111,14 +118,17 @@ impl BuoyantApp {
     }
 
     fn header(&self) -> impl View<Rgb565, ()> {
-        let mut weekday: String::<3> = String::new();
+        let mut weekday: String<3> = String::new();
         write!(weekday, "{:.3}", self.current_time.weekday()).unwrap();
         HStack::new((
-            Text::new(weekday, &SPLEEN).foreground_color(Rgb565::GREEN)
+            Text::new(weekday, &SPLEEN)
+                .foreground_color(Rgb565::GREEN)
                 .background_color(Rgb565::BLACK, Rectangle),
             Spacer::default(),
-            self.bluetooth_icon().background_color(Rgb565::BLACK, Rectangle),
-            self.battery_icon().background_color(Rgb565::BLACK, Rectangle),
+            self.bluetooth_icon()
+                .background_color(Rgb565::BLACK, Rectangle),
+            self.battery_icon()
+                .background_color(Rgb565::BLACK, Rectangle),
         ))
     }
 
@@ -165,7 +175,8 @@ impl BuoyantApp {
             self.current_time.year().abs(),
             self.current_time.month() as u8,
             self.current_time.day()
-        ).unwrap();
+        )
+        .unwrap();
         let mut seconds = String::<2>::new();
         write!(seconds, "{:02}", self.current_time.second()).unwrap();
         HStack::new((
@@ -179,7 +190,6 @@ impl BuoyantApp {
         ))
     }
 }
-
 
 fn to_12_hr(hour: u8) -> u8 {
     match hour % 12 {

@@ -1,4 +1,6 @@
-use embassy_sync::{blocking_mutex::raw::ThreadModeRawMutex, channel::Channel, signal::Signal, watch::Watch};
+use embassy_sync::{
+    blocking_mutex::raw::ThreadModeRawMutex, channel::Channel, signal::Signal, watch::Watch,
+};
 use time::PrimitiveDateTime;
 
 use crate::app_framework::events::SystemEvent;

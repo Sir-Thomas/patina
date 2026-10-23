@@ -1,5 +1,5 @@
-use crate::define_apps;
 use crate::app_framework::prelude::*;
+use crate::define_apps;
 
 define_apps! {
     Alarm => alarm::AlarmApp,

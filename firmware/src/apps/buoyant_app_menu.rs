@@ -3,7 +3,10 @@ use embedded_graphics::{mono_font::ascii::FONT_10X20, pixelcolor::Rgb565, prelud
 use heapless::{String, format};
 use pinetime_bsp::touch::{TouchEvent, TouchGesture};
 
-use crate::{app_framework::{AppContext, EventResponse, SystemEvent, WatchApp}, apps::{ALL_APPS, APP_COUNT, AppId}};
+use crate::{
+    app_framework::{AppContext, EventResponse, SystemEvent, WatchApp},
+    apps::{ALL_APPS, APP_COUNT, AppId},
+};
 
 pub struct BuoyantAppMenuApp {
     scroll_offset: usize,
@@ -11,7 +14,7 @@ pub struct BuoyantAppMenuApp {
 }
 
 impl BuoyantAppMenuApp {
-    fn handle_touch(&mut self, touch_event: TouchEvent) -> EventResponse{
+    fn handle_touch(&mut self, touch_event: TouchEvent) -> EventResponse {
         match touch_event.gesture {
             TouchGesture::SwipeDown => {
                 if self.scroll_offset == 0 {
@@ -27,9 +30,7 @@ impl BuoyantAppMenuApp {
                 self.scroll_offset += 1;
                 EventResponse::Rerender
             }
-            TouchGesture::Tap => {
-                self.launch_app(touch_event.location.y)
-            }
+            TouchGesture::Tap => self.launch_app(touch_event.location.y),
             _ => EventResponse::Ignore,
         }
     }
@@ -78,17 +79,15 @@ impl WatchApp for BuoyantAppMenuApp {
     async fn on_start(&mut self, _ctx: &mut AppContext) {
         // Initialize app state
     }
-    
+
     async fn on_stop(&mut self, _ctx: &mut AppContext) {
         // Clean up app state
     }
 
     async fn on_event(&mut self, event: SystemEvent, _ctx: &mut AppContext) -> EventResponse {
         match event {
-            SystemEvent::Touch(touch_event) => {
-                self.handle_touch(touch_event)
-            }
-            _ => EventResponse::Ignore
+            SystemEvent::Touch(touch_event) => self.handle_touch(touch_event),
+            _ => EventResponse::Ignore,
         }
     }
 
@@ -99,8 +98,9 @@ impl WatchApp for BuoyantAppMenuApp {
             self.draw_app(1),
             self.draw_app(2),
             self.draw_app(3),
-        )).with_spacing(10);
-        let view = menu.as_drawable(Size::new(240,240), Rgb565::WHITE, &mut captures);
+        ))
+        .with_spacing(10);
+        let view = menu.as_drawable(Size::new(240, 240), Rgb565::WHITE, &mut captures);
         ctx.draw_screen(&view).await;
     }
 }

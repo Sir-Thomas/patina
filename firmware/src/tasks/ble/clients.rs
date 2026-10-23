@@ -9,7 +9,7 @@ use crate::signals::ADJUST_TIME;
 // TODO: Transition to an embassy task that subscribes to notifications
 pub async fn sync_time<'a>(
     stack: &'a Stack<'a, SoftdeviceController<'a>, DefaultPacketPool>,
-    conn: Connection<'a, DefaultPacketPool>
+    conn: Connection<'a, DefaultPacketPool>,
 ) {
     info!("[ble] synchronizing time");
     let Ok(client) = GattClient::<_, DefaultPacketPool, 10>::new(stack, &conn).await else {

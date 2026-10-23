@@ -1,5 +1,5 @@
-use crate::app_framework::{AppContext, EventResponse};
 use crate::app_framework::events::SystemEvent;
+use crate::app_framework::{AppContext, EventResponse};
 use crate::apps::{AppId, AppInstance};
 use crate::tasks;
 use crate::tasks::ble::ble_runner;
@@ -20,7 +20,12 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     info!("[App Manager] Creating event receiver");
     let receiver = EVENT_QUEUE.receiver();
     info!("[App Manager] Initializing App Manager");
-    let mut app_manager = AppManager::new(board.backlight, board.display, board.mpsl_flash, board.vibrator);
+    let mut app_manager = AppManager::new(
+        board.backlight,
+        board.display,
+        board.mpsl_flash,
+        board.vibrator,
+    );
     info!("[App Manager] Spawning Battery task");
     spawner.must_spawn(tasks::battery::battery_task(board.battery));
     info!("[App Manager] Spawning button task");
@@ -61,12 +66,7 @@ impl AppManager {
         let app_id = AppId::Clock;
         Self {
             app_id,
-            context: AppContext::new(
-                backlight,
-                display,
-                flash,
-                vibrator,
-            ),
+            context: AppContext::new(backlight, display, flash, vibrator),
             current_app: AppInstance::new(app_id),
         }
     }
@@ -103,7 +103,7 @@ impl AppManager {
                 self.current_app.on_stop(&mut self.context).await;
                 self.context.turn_off_display().await;
                 return;
-            },
+            }
             SystemEvent::ButtonPress => {
                 self.close_current_app().await;
                 return;
@@ -114,15 +114,12 @@ impl AppManager {
             SystemEvent::BluetoothDisconnected => {
                 self.context.set_bluetooth_connected(false);
             }
-            SystemEvent::Tick => {},
+            SystemEvent::Tick => {}
             _ => REFRESH_TIMEOUT.signal(()),
         }
-            
-        let response = self.current_app.on_event(
-            event, 
-            &mut self.context
-        ).await;
-            
+
+        let response = self.current_app.on_event(event, &mut self.context).await;
+
         match response {
             EventResponse::CloseApp => {
                 self.close_current_app().await;
@@ -136,7 +133,7 @@ impl AppManager {
             EventResponse::Ignore => {}
         }
     }
-    
+
     async fn switch_to(&mut self, new_id: AppId) {
         self.current_app.on_stop(&mut self.context).await;
         self.current_app = AppInstance::new(new_id);

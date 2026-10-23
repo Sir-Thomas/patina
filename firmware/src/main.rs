@@ -25,7 +25,9 @@ async fn main(spawner: Spawner) {
     config.time_interrupt_priority = Priority::P2;
     let mut board = PineTime::new(config).await;
     #[cfg(not(feature = "baremetal"))] // TODO: Turn this into a setting
-    board.set_screen_orientation(ScreenOrientation::Flipped).await;
+    board
+        .set_screen_orientation(ScreenOrientation::Flipped)
+        .await;
 
     info!("[main] Spawning systick task");
     spawner.must_spawn(tasks::systick::systick_task());
@@ -36,7 +38,8 @@ async fn main(spawner: Spawner) {
 
 fn update_vtable() {
     info!("[main] Updating vector table offset");
-    let mut p = cortex_m::Peripherals::take().expect("Cortex-M peripherals should always be available");
+    let mut p =
+        cortex_m::Peripherals::take().expect("Cortex-M peripherals should always be available");
     unsafe {
         p.SCB.invalidate_icache();
         p.SCB.vtor.write(0x8200);

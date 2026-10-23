@@ -1,6 +1,14 @@
 #![allow(dead_code)]
 // Static services like DeviceInformationService trigger unused code warnings
 
+use crate::{
+    app_framework::SystemEvent,
+    signals::EVENT_QUEUE,
+    tasks::ble::{
+        clients::sync_time,
+        services::{cts::update_time, prelude::*},
+    },
+};
 use core::array::TryFromSliceError;
 use defmt::{debug, info};
 use embassy_embedded_hal::{flash::partition::Partition, shared_bus::asynch::spi::SpiDevice};
@@ -15,11 +23,6 @@ use pinetime_bsp::{ble::BleController, flash::XT25F32B};
 use spi_memory_async::series25::Flash;
 use static_cell::StaticCell;
 use trouble_host::{Error, HostResources, prelude::*};
-use crate::{
-    app_framework::SystemEvent,
-    signals::EVENT_QUEUE,
-    tasks::ble::{clients::sync_time, services::{cts::update_time, prelude::*}},
-};
 
 mod clients;
 mod services;
@@ -32,7 +35,8 @@ const L2CAP_MTU: usize = 27;
 const L2CAP_CHANNELS_MAX: usize = 2;
 type BleResources = HostResources<DefaultPacketPool, L2CAP_CHANNELS_MAX, L2CAP_MTU>;
 static RESOURCES: StaticCell<BleResources> = StaticCell::new();
-static STACK: StaticCell<Stack<'static, SoftdeviceController, DefaultPacketPool>> = StaticCell::new();
+static STACK: StaticCell<Stack<'static, SoftdeviceController, DefaultPacketPool>> =
+    StaticCell::new();
 static SERVER: StaticCell<PatinaGattServer<'static>> = StaticCell::new();
 
 #[gatt_server]
@@ -51,19 +55,31 @@ pub struct PatinaGattServer {
 }
 
 struct DfuDevice<'a> {
-    flash: Partition<'a, NoopRawMutex, Flash<SpiDevice<'static, NoopRawMutex, Spim<'static>, Output<'static>>, XT25F32B, Delay>>,
+    flash: Partition<
+        'a,
+        NoopRawMutex,
+        Flash<SpiDevice<'static, NoopRawMutex, Spim<'static>, Output<'static>>, XT25F32B, Delay>,
+    >,
     target: DfuTarget<256>,
 }
 
 #[embassy_executor::task]
-pub async fn ble_runner(bluetooth: BleController, flash: Flash<SpiDevice<'static, NoopRawMutex, Spim<'static>, Output<'static>>, XT25F32B, Delay>, spawner: Spawner) {
+pub async fn ble_runner(
+    bluetooth: BleController,
+    flash: Flash<SpiDevice<'static, NoopRawMutex, Spim<'static>, Output<'static>>, XT25F32B, Delay>,
+    spawner: Spawner,
+) {
     let ficr = embassy_nrf::pac::FICR;
     let part = ficr.info().part().read().part().to_bits();
     let variant = ficr.info().variant().read().variant().to_bits();
-    
+
     let high = u64::from((ficr.deviceaddr(1).read() & 0x0000ffff) | 0x0000c000);
     let addr = high << 32 | u64::from(ficr.deviceaddr(0).read());
-    let address = Address::random(addr.to_le_bytes()[..6].try_into().expect("Address should be valid"));
+    let address = Address::random(
+        addr.to_le_bytes()[..6]
+            .try_into()
+            .expect("Address should be valid"),
+    );
 
     let hw_info = HardwareInfo {
         part,
@@ -80,7 +96,10 @@ pub async fn ble_runner(bluetooth: BleController, flash: Flash<SpiDevice<'static
         len: 0,
     };
 
-    let flash_mutex: Mutex<NoopRawMutex, Flash<SpiDevice<'static, NoopRawMutex, Spim<'static>, Output<'static>>, XT25F32B, Delay>> = Mutex::new(flash);
+    let flash_mutex: Mutex<
+        NoopRawMutex,
+        Flash<SpiDevice<'static, NoopRawMutex, Spim<'static>, Output<'static>>, XT25F32B, Delay>,
+    > = Mutex::new(flash);
     let dfu_partition = Partition::new(&flash_mutex, 0x00040000, 0x000B4000 - 0x00040000);
     let dfu_target: DfuTarget<256> = DfuTarget::new(dfu_partition.size(), fw_info, hw_info);
     let mut dfu = DfuDevice {
@@ -91,13 +110,18 @@ pub async fn ble_runner(bluetooth: BleController, flash: Flash<SpiDevice<'static
     let resources = RESOURCES.init(BleResources::new());
     let stack = STACK.init(trouble_host::new(bluetooth.sdc, resources).set_random_address(address));
 
-    let Host { mut peripheral, runner, .. } = stack.build();
+    let Host {
+        mut peripheral,
+        runner,
+        ..
+    } = stack.build();
 
-    let Ok(gatt_server) = PatinaGattServer::new_with_config(
-        GapConfig::Peripheral(
-            PeripheralConfig { name: NAME, appearance: &appearance::watch::SMARTWATCH }
-        )
-    ) else {
+    let Ok(gatt_server) =
+        PatinaGattServer::new_with_config(GapConfig::Peripheral(PeripheralConfig {
+            name: NAME,
+            appearance: &appearance::watch::SMARTWATCH,
+        }))
+    else {
         info!("[ble] Failed to create GATT Server");
         info!("[ble] Killing BLE Service");
         return;
@@ -140,13 +164,15 @@ async fn advertise<'a, 'b, 'c, C: Controller>(
         ],
         &mut advertiser_data[..],
     )?;
-    let advertiser = peripheral.advertise(
-        &Default::default(),
-        Advertisement::ConnectableScannableUndirected {
-            adv_data: &advertiser_data[0..advertiser_len],
-            scan_data: &[],
-        },
-    ).await?;
+    let advertiser = peripheral
+        .advertise(
+            &Default::default(),
+            Advertisement::ConnectableScannableUndirected {
+                adv_data: &advertiser_data[0..advertiser_len],
+                scan_data: &[],
+            },
+        )
+        .await?;
     info!("[ble] Advertising");
     let conn = advertiser.accept().await?;
     sync_time(stack, conn.clone()).await;
@@ -170,8 +196,8 @@ async fn connection_events(
             }
             GattConnectionEvent::Gatt { event } => {
                 match handle_gatt_event(event, connection, server, dfu).await {
-                     Ok(_) => {},
-                     Err(_e) => info!("[gatt] error proccessing request"),
+                    Ok(_) => {}
+                    Err(_e) => info!("[gatt] error proccessing request"),
                 }
             }
             _ => {}
@@ -196,7 +222,7 @@ impl From<Error> for BleError {
         BleError::TroubleHostError
     }
 }
-    
+
 impl From<CapacityError> for BleError {
     fn from(_: CapacityError) -> Self {
         BleError::CapacityError
@@ -249,14 +275,19 @@ async fn handle_write_event(
             let mut buf: [u8; 32] = [0; 32];
             if let Ok(len) = response.encode(&mut buf[..]) {
                 let response = Vec::from_slice(&buf[..len])?;
-                if let Err(e) = server.nordic_dfu.control.notify(&connection, &response).await {
+                if let Err(e) = server
+                    .nordic_dfu
+                    .control
+                    .notify(&connection, &response)
+                    .await
+                {
                     info!("[gatt] Error notifying control: {:?}", e);
                 }
             }
             if status == DfuStatus::DoneReset {
-            info!("[gatt control] DFU Update complete, resetting device");
-            Timer::after_secs(4).await;
-            cortex_m::peripheral::SCB::sys_reset();
+                info!("[gatt control] DFU Update complete, resetting device");
+                Timer::after_secs(4).await;
+                cortex_m::peripheral::SCB::sys_reset();
             }
         } else {
             debug!("[gatt] dfu control: unable to decode");
@@ -272,10 +303,20 @@ async fn handle_write_event(
         let mut buf: [u8; 32] = [0; 32];
         if let Ok(len) = response.encode(&mut buf[..]) {
             let response = Vec::from_slice(&buf[..len])?;
-            if let Err(e) = server.nordic_dfu.control.notify(&connection, &response).await {
+            if let Err(e) = server
+                .nordic_dfu
+                .control
+                .notify(&connection, &response)
+                .await
+            {
                 info!("[gatt] Error notifying control: {:?}", e);
             }
-            if let Err(e) = server.nordic_dfu.packet.notify(&connection, &response).await {
+            if let Err(e) = server
+                .nordic_dfu
+                .packet
+                .notify(&connection, &response)
+                .await
+            {
                 info!("[gatt] Error notifying packet: {:?}", e);
             }
         }
@@ -286,7 +327,11 @@ async fn handle_write_event(
             cortex_m::peripheral::SCB::sys_reset();
         }
     } else {
-        info!("[gatt] Write Event to unknown handle: {:?}, data: {:?}", handle, event.data());
+        info!(
+            "[gatt] Write Event to unknown handle: {:?}, data: {:?}",
+            handle,
+            event.data()
+        );
     }
     Ok(())
 }

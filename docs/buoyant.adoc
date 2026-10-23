@@ -1,5 +1,8 @@
 = Buoyant
 
+[CAUTION]
+.Old Explanation
+====
 I have a branch where I was testing out the buoyant crate. 
 It seems like a nice framework that would simplify a lot of layout and app development.
 It can create clean layouts with an interface inspired by SwiftUI, but within the constraints of a microcontroller.
@@ -16,3 +19,11 @@ If we can push pixels to the display fast enough, the flicker might be reduced t
 Likewise, if we have enough RAM for a full framebuffer, we could draw to it and update the whole screen at one time.
 
 If something changes, I will come back and re-implement buoyant, but until then, we will have to stick with raw embedded-graphics.
+====
+
+== Update - Buoyant works now!!
+
+Updating to buoyant 0.8.0-alpha.0 fixed my rendering issues.
+I am currently in the process of transitioning rendering to use buoyant fully.
+I will likely have to completely rework the input and events.
+Buoyant can handle events in some way, but I still need to figure out how best to integrate it into the firmware.

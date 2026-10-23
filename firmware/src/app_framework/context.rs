@@ -3,7 +3,6 @@ use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::mutex::Mutex;
 use embassy_sync::watch::DynAnonReceiver;
 use embassy_time::Duration;
-use embedded_layout::View;
 use nrf_sdc::mpsl::Flash;
 use pinetime_bsp::BrightnessLevel;
 use pinetime_bsp::vibrator::Vibrator;
@@ -54,7 +53,7 @@ impl AppContext {
         CHANGE_DISPLAY_STATE.signal(true);
         self.screen_on = true;
         self.backlight.enable();
-        self.display.wake();
+        self.display.wake().await;
     }
 
     pub async fn turn_off_display(&mut self) {
@@ -63,17 +62,17 @@ impl AppContext {
         self.screen_on = false;
         self.backlight.disable();
         self.clear_display().await;
-        self.display.sleep();
+        self.display.sleep().await;
     }
 
     pub async fn clear_display(&mut self) {
         info!("[Context] Clearing display");
-        self.display.clear(Rgb565::BLACK);
+        self.display.clear(Rgb565::BLACK).await;
     }
 
-    pub fn fill_display(&mut self, color: Rgb565) {
+    pub async fn fill_display(&mut self, color: Rgb565) {
         info!("[Context] Filling display with color");
-        self.display.clear(color);
+        self.display.clear(color).await;
     }
 
     pub async fn draw<T: Drawable<Color = Rgb565> + Dimensions>(

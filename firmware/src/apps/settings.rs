@@ -1,5 +1,8 @@
 use embedded_icon::{NewIcon, mdi};
-use embedded_text::{alignment::{HorizontalAlignment, VerticalAlignment}, style::TextBoxStyleBuilder};
+use embedded_text::{
+    alignment::{HorizontalAlignment, VerticalAlignment},
+    style::TextBoxStyleBuilder,
+};
 use pinetime_bsp::{BrightnessLevel, touch::TouchGesture};
 
 use crate::app_framework::prelude::*;
@@ -23,11 +26,11 @@ impl WatchApp for SettingsApp {
             settings: Settings::default(),
         }
     }
-    
+
     async fn on_start(&mut self, ctx: &mut AppContext) {
         self.settings.load(ctx);
     }
-    
+
     async fn on_stop(&mut self, ctx: &mut AppContext) {
         ctx.set_brightness(self.settings.brightness);
     }
@@ -38,11 +41,13 @@ impl WatchApp for SettingsApp {
                 if touch_event.gesture == TouchGesture::SwipeUp {
                     EventResponse::CloseApp
                 } else if self.screen == SettingsScreen::Main {
-                    self.main_screen_touch_event(touch_event.location, ctx).await
+                    self.main_screen_touch_event(touch_event.location, ctx)
+                        .await
                 } else if self.screen == SettingsScreen::Firmware {
                     if (touch_event.location.x >= 10 && touch_event.location.x <= 230)
-                    && (touch_event.location.y >= 180 && touch_event.location.y <= 230) 
-                    && !ctx.firmware_is_validated() {
+                        && (touch_event.location.y >= 180 && touch_event.location.y <= 230)
+                        && !ctx.firmware_is_validated()
+                    {
                         ctx.validate_firmware().await;
                         EventResponse::Rerender
                     } else {
@@ -66,13 +71,16 @@ impl WatchApp for SettingsApp {
         match self.screen {
             SettingsScreen::Main => {
                 self.draw_main_screen(ctx, &display_area).await;
-            },
+            }
             SettingsScreen::Flashlight => {
                 ctx.set_brightness(BrightnessLevel::High);
-                ctx.fill_display(Rgb565::WHITE);
+                ctx.fill_display(Rgb565::WHITE).await;
                 let flashlight_icon = mdi::size48px::Flashlight::new(Rgb565::CSS_LIGHT_GRAY);
-                let flashlight_icon = Image::new(&flashlight_icon, Point::zero())
-                    .align_to(&display_area, horizontal::Center, vertical::Center);
+                let flashlight_icon = Image::new(&flashlight_icon, Point::zero()).align_to(
+                    &display_area,
+                    horizontal::Center,
+                    vertical::Center,
+                );
                 ctx.draw(&flashlight_icon, Rgb565::WHITE).await;
             }
             SettingsScreen::Firmware => {
@@ -81,11 +89,13 @@ impl WatchApp for SettingsApp {
                 let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
                 let mut string = String::<256>::new();
                 write!(
-                    string, "Firmware: Patina\nVersion: {}\nValidated: {}\nBattery: {}V",
+                    string,
+                    "Firmware: Patina\nVersion: {}\nValidated: {}\nBattery: {}V",
                     env!("CARGO_PKG_VERSION"),
                     validated,
                     ctx.battery().2 as f32 / 1000.0,
-                ).expect("All inputs are formattable");
+                )
+                .expect("All inputs are formattable");
                 let text = TextBox::new(string.as_str(), bounds, style);
                 ctx.draw(&text, Rgb565::BLACK).await;
                 if !validated {
@@ -96,20 +106,23 @@ impl WatchApp for SettingsApp {
                         .build();
                     let validate = TextBox::with_textbox_style(
                         "Validate Firmware",
-                        Rectangle::new(Point::new(10, 180),
-                        Size::new(220, 50)),
+                        Rectangle::new(Point::new(10, 180), Size::new(220, 50)),
                         style,
                         centered,
                     );
                     ctx.draw(&validate, Rgb565::GREEN).await;
                 }
-            },
+            }
         }
     }
 }
 
 impl SettingsApp {
-    async fn main_screen_touch_event(&mut self, location: Point, ctx: &mut AppContext) -> EventResponse {
+    async fn main_screen_touch_event(
+        &mut self,
+        location: Point,
+        ctx: &mut AppContext,
+    ) -> EventResponse {
         if location.x <= 120 && location.y <= 120 {
             ctx.short_vibration().await;
             self.settings.brightness = match self.settings.brightness {
@@ -128,7 +141,8 @@ impl SettingsApp {
     async fn draw_main_screen(&self, ctx: &mut AppContext, display_area: &Rectangle) {
         const OFFSET: i32 = 60;
         ctx.clear_display().await;
-        self.draw_brightness_icon(self.settings.brightness, ctx, display_area, OFFSET).await;
+        self.draw_brightness_icon(self.settings.brightness, ctx, display_area, OFFSET)
+            .await;
         let flashlight_icon = mdi::size48px::Flashlight::new(Rgb565::CSS_LIGHT_GRAY);
         let flashlight_icon = Image::new(&flashlight_icon, Point::zero())
             .align_to(display_area, horizontal::Center, vertical::Center)
@@ -146,24 +160,24 @@ impl SettingsApp {
         brightness_level: BrightnessLevel,
         ctx: &mut AppContext,
         display_area: &Rectangle,
-        offset: i32
+        offset: i32,
     ) {
         match brightness_level {
-            BrightnessLevel::Low =>{
+            BrightnessLevel::Low => {
                 let brightness_icon = mdi::size48px::Brightness5::new(Rgb565::CSS_LIGHT_GRAY);
                 let brightness_icon = Image::new(&brightness_icon, Point::zero())
                     .align_to(display_area, horizontal::Center, vertical::Center)
                     .translate(Point::new(-offset, -offset));
                 ctx.draw(&brightness_icon, Rgb565::BLACK).await;
             }
-            BrightnessLevel::Medium =>{
+            BrightnessLevel::Medium => {
                 let brightness_icon = mdi::size48px::Brightness6::new(Rgb565::CSS_LIGHT_GRAY);
                 let brightness_icon = Image::new(&brightness_icon, Point::zero())
                     .align_to(display_area, horizontal::Center, vertical::Center)
                     .translate(Point::new(-offset, -offset));
                 ctx.draw(&brightness_icon, Rgb565::BLACK).await;
             }
-            BrightnessLevel::High =>{
+            BrightnessLevel::High => {
                 let brightness_icon = mdi::size48px::Brightness7::new(Rgb565::CSS_LIGHT_GRAY);
                 let brightness_icon = Image::new(&brightness_icon, Point::zero())
                     .align_to(display_area, horizontal::Center, vertical::Center)

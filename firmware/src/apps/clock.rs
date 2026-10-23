@@ -2,11 +2,11 @@ use defmt::{debug, info};
 use eg_seven_segment::SevenSegmentStyle;
 use embedded_graphics::image::ImageRawBE;
 use embedded_icon::{NewIcon, mdi::size24px as mdi};
+use embedded_layout::prelude::*;
 use embedded_text::{TextBox, alignment::HorizontalAlignment};
 use lcd_async::raw_framebuf::RawFrameBuf;
 use pinetime_bsp::touch::TouchGesture;
 use time::PrimitiveDateTime;
-use embedded_layout::prelude::*;
 use u8g2_fonts::U8g2TextStyle;
 
 use crate::{app_framework::prelude::*, apps::AppId};
@@ -19,11 +19,20 @@ const SM_DIGIT_HEIGHT: u32 = 24;
 const SM_DIGIT_WIDTH: u32 = 12;
 const SM_DIGIT_SPACING: u32 = 4;
 const SM_SEGMENT_WIDTH: u32 = 3;
-const DATE_SIZE: Size = Size::new(SM_DIGIT_WIDTH * 11 + SM_DIGIT_SPACING * 10, SM_DIGIT_HEIGHT + SM_DIGIT_SPACING);
-const HOURS_MINUTES_SIZE: Size = Size::new(LG_DIGIT_WIDTH * 4 + LG_DIGIT_SPACING * 5, LG_DIGIT_HEIGHT + LG_DIGIT_SPACING);
-const SEC_SIZE: Size = Size::new(SM_DIGIT_WIDTH * 2 + SM_DIGIT_SPACING, SM_DIGIT_HEIGHT + SM_DIGIT_SPACING);
+const DATE_SIZE: Size = Size::new(
+    SM_DIGIT_WIDTH * 11 + SM_DIGIT_SPACING * 10,
+    SM_DIGIT_HEIGHT + SM_DIGIT_SPACING,
+);
+const HOURS_MINUTES_SIZE: Size = Size::new(
+    LG_DIGIT_WIDTH * 4 + LG_DIGIT_SPACING * 5,
+    LG_DIGIT_HEIGHT + LG_DIGIT_SPACING,
+);
+const SEC_SIZE: Size = Size::new(
+    SM_DIGIT_WIDTH * 2 + SM_DIGIT_SPACING,
+    SM_DIGIT_HEIGHT + SM_DIGIT_SPACING,
+);
 
-pub struct ClockApp{
+pub struct ClockApp {
     battery_level: u8,
     battery_charging: bool,
     bluetooth_connected: bool,
@@ -53,10 +62,8 @@ impl WatchApp for ClockApp {
             .segment_width(SM_SEGMENT_WIDTH)
             .segment_color(Rgb565::GREEN)
             .build();
-        let sm_text_style = U8g2TextStyle::new(
-            u8g2_fonts::fonts::u8g2_font_spleen16x32_mr,
-            Rgb565::GREEN
-        );
+        let sm_text_style =
+            U8g2TextStyle::new(u8g2_fonts::fonts::u8g2_font_spleen16x32_mr, Rgb565::GREEN);
 
         ClockApp {
             battery_level: 0,
@@ -66,19 +73,17 @@ impl WatchApp for ClockApp {
             lg_digit_style,
             sm_digit_style,
             sm_text_style,
-            display_area: Rectangle::new(
-                Point::new(5, 5),
-                Size::new(230, 230),
-            ),
+            display_area: Rectangle::new(Point::new(5, 5), Size::new(230, 230)),
             update_header: true,
             update_date: true,
             update_hours_minutes: true,
             update_seconds: true,
         }
     }
-    
+
     async fn on_start(&mut self, ctx: &mut AppContext) {
         info!("[Clock App] Starting Clock App");
+        ctx.clear_display().await;
         self.bluetooth_connected = ctx.bluetooth_connected();
         (self.battery_level, self.battery_charging, _) = ctx.battery();
         self.update_header = true;
@@ -96,9 +101,8 @@ impl WatchApp for ClockApp {
             self.current_time.second()
         );
     }
-    
-    async fn on_stop(&mut self, _ctx: &mut AppContext) {
-    }
+
+    async fn on_stop(&mut self, _ctx: &mut AppContext) {}
 
     async fn on_event(&mut self, event: SystemEvent, ctx: &mut AppContext) -> EventResponse {
         match event {
@@ -112,12 +116,13 @@ impl WatchApp for ClockApp {
                     self.current_time.minute(),
                     self.current_time.second()
                 );
-                if self.battery_level != battery_level || self.battery_charging != battery_charging {
+                if self.battery_level != battery_level || self.battery_charging != battery_charging
+                {
                     self.battery_level = battery_level;
                     self.battery_charging = battery_charging;
                     self.update_header = true;
                 }
-                if self.current_time.day() != current_time.day(){
+                if self.current_time.day() != current_time.day() {
                     self.update_date = true;
                 }
                 if self.current_time.hour() != current_time.hour() {
@@ -131,60 +136,90 @@ impl WatchApp for ClockApp {
                 }
                 if self.update_date || self.update_hours_minutes || self.update_seconds {
                     self.current_time = current_time;
-                EventResponse::Rerender
+                    EventResponse::Rerender
                 } else {
                     EventResponse::Ignore
                 }
-            },
-            SystemEvent::Touch(event) => {
-                match event.gesture {
-                    TouchGesture::SwipeDown => {
-                        EventResponse::SwitchApp(AppId::Settings)
-                    }
-                    TouchGesture::SwipeUp => {
-                        EventResponse::SwitchApp(AppId::BuoyantAppMenu)
-                    }
-                    _ => EventResponse::Ignore,
-                }
+            }
+            SystemEvent::Touch(event) => match event.gesture {
+                TouchGesture::SwipeDown => EventResponse::SwitchApp(AppId::Settings),
+                TouchGesture::SwipeUp => EventResponse::SwitchApp(AppId::BuoyantAppMenu),
+                _ => EventResponse::Ignore,
             },
             SystemEvent::BluetoothConnected => {
                 self.bluetooth_connected = true;
                 self.update_header = true;
                 EventResponse::Rerender
-            },
+            }
             SystemEvent::BluetoothDisconnected => {
                 self.bluetooth_connected = false;
                 self.update_header = true;
                 EventResponse::Rerender
-            },
+            }
             _ => EventResponse::Ignore,
         }
     }
 
     async fn render(&mut self, ctx: &mut AppContext) {
         debug!("[Clock App] Rendering Clock");
+
         if self.update_header {
-            battery_icon(self.battery_level, self.battery_charging, &self.display_area, ctx).await;
+            battery_icon(
+                self.battery_level,
+                self.battery_charging,
+                &self.display_area,
+                ctx,
+            )
+            .await;
             bluetooth_icon(self.bluetooth_connected, &self.display_area, ctx).await;
             self.update_header = false;
         }
         if self.update_date {
-            weekday(self.current_time.weekday(), &self.display_area, ctx, self.sm_text_style.clone()).await;
-            date(self.current_time, &self.display_area, ctx, self.sm_digit_style).await;
+            weekday(
+                self.current_time.weekday(),
+                &self.display_area,
+                ctx,
+                self.sm_text_style.clone(),
+            )
+            .await;
+            date(
+                self.current_time,
+                &self.display_area,
+                ctx,
+                self.sm_digit_style,
+            )
+            .await;
             self.update_date = false;
         }
         if self.update_hours_minutes {
-            hours_minutes(self.current_time, &self.display_area, ctx, self.lg_digit_style).await;
+            hours_minutes(
+                self.current_time,
+                &self.display_area,
+                ctx,
+                self.lg_digit_style,
+            )
+            .await;
             self.update_hours_minutes = false;
         }
         if self.update_seconds {
-            seconds(self.current_time.second(), &self.display_area, ctx, self.sm_digit_style).await;
+            seconds(
+                self.current_time.second(),
+                &self.display_area,
+                ctx,
+                self.sm_digit_style,
+            )
+            .await;
             self.update_seconds = false;
         }
     }
 }
 
-async fn weekday(weekday: time::Weekday, display_area: &Rectangle, ctx: &mut AppContext, sm_text_style: U8g2TextStyle<Rgb565>) {
+async fn weekday(
+    weekday: time::Weekday,
+    display_area: &Rectangle,
+    ctx: &mut AppContext,
+    sm_text_style: U8g2TextStyle<Rgb565>,
+) {
     let mut string = String::<3>::new();
     write!(string, "{:.3}", weekday).expect("String will always be valid");
     let date_text = TextBox::with_alignment(
@@ -206,31 +241,31 @@ async fn battery_icon(level: u8, charging: bool, display_area: &Rectangle, ctx: 
             let icon = mdi::BatteryCharging::new(Rgb565::GREEN);
             let icon = Image::new(&icon, Point::zero());
             icon.draw(&mut fbuf).expect("Drawing should never fail");
-        },
+        }
         (60..=u8::MAX, false) => {
             let icon = mdi::BatteryHigh::new(Rgb565::GREEN);
             let icon = Image::new(&icon, Point::zero());
             icon.draw(&mut fbuf).expect("Drawing should never fail");
-        },
+        }
         (30..60, false) => {
             let icon = mdi::BatteryMedium::new(Rgb565::GREEN);
             let icon = Image::new(&icon, Point::zero());
             icon.draw(&mut fbuf).expect("Drawing should never fail");
-        },
+        }
         (10..30, false) => {
             let icon = mdi::BatteryLow::new(Rgb565::GREEN);
             let icon = Image::new(&icon, Point::zero());
             icon.draw(&mut fbuf).expect("Drawing should never fail");
-        },
+        }
         (0..10, false) => {
             let icon = mdi::BatteryAlertVariantOutline::new(Rgb565::RED);
             let icon = Image::new(&icon, Point::zero());
             icon.draw(&mut fbuf).expect("Drawing should never fail");
-        },
+        }
     }
     let image = ImageRawBE::<Rgb565>::new(fbuf.as_bytes(), 24);
-    let image = Image::new(&image, Point::zero())
-        .align_to(display_area, horizontal::Right, vertical::Top);
+    let image =
+        Image::new(&image, Point::zero()).align_to(display_area, horizontal::Right, vertical::Top);
     ctx.draw(&image, Rgb565::BLACK).await;
 }
 
@@ -254,17 +289,28 @@ async fn bluetooth_icon(connected: bool, display_area: &Rectangle, ctx: &mut App
     ctx.draw(&image, Rgb565::BLACK).await;
 }
 
-async fn hours_minutes(current_time: PrimitiveDateTime, display_area: &Rectangle, ctx: &mut AppContext, lg_digit_style: SevenSegmentStyle<Rgb565>) {
+async fn hours_minutes(
+    current_time: PrimitiveDateTime,
+    display_area: &Rectangle,
+    ctx: &mut AppContext,
+    lg_digit_style: SevenSegmentStyle<Rgb565>,
+) {
     let mut string = String::<5>::new();
-    write!(string, "{:02}:{:02}", to_12_hr(current_time.hour()), current_time.minute())
-        .expect("Hours and minutes will always be valid for formatting");
+    write!(
+        string,
+        "{:02}:{:02}",
+        to_12_hr(current_time.hour()),
+        current_time.minute()
+    )
+    .expect("Hours and minutes will always be valid for formatting");
     let hours_minutes_text = TextBox::with_alignment(
         string.as_str(),
         Rectangle::new(Point::zero(), HOURS_MINUTES_SIZE),
         lg_digit_style,
         HorizontalAlignment::Center,
     );
-    let positioned_hours = hours_minutes_text.align_to(display_area, horizontal::Center, vertical::Center);
+    let positioned_hours =
+        hours_minutes_text.align_to(display_area, horizontal::Center, vertical::Center);
     ctx.draw(&positioned_hours, Rgb565::BLACK).await;
 }
 
@@ -275,10 +321,21 @@ fn to_12_hr(hour: u8) -> u8 {
     }
 }
 
-async fn date(current_time: PrimitiveDateTime, display_area: &Rectangle, ctx: &mut AppContext, sm_digit_style: SevenSegmentStyle<Rgb565>) {
+async fn date(
+    current_time: PrimitiveDateTime,
+    display_area: &Rectangle,
+    ctx: &mut AppContext,
+    sm_digit_style: SevenSegmentStyle<Rgb565>,
+) {
     let mut string = String::<11>::new();
-    write!(string, "{:4}-{:02}-{:02}", current_time.year(), current_time.month() as u8, current_time.day())
-        .expect("Date will always be valid for formatting");
+    write!(
+        string,
+        "{:4}-{:02}-{:02}",
+        current_time.year(),
+        current_time.month() as u8,
+        current_time.day()
+    )
+    .expect("Date will always be valid for formatting");
     let date_text = TextBox::with_alignment(
         string.as_str(),
         Rectangle::new(Point::zero(), DATE_SIZE),
@@ -289,7 +346,12 @@ async fn date(current_time: PrimitiveDateTime, display_area: &Rectangle, ctx: &m
     ctx.draw(&positioned_date, Rgb565::BLACK).await;
 }
 
-async fn seconds(seconds: u8, display_area: &Rectangle, ctx: &mut AppContext, sm_digit_style: SevenSegmentStyle<Rgb565>) {
+async fn seconds(
+    seconds: u8,
+    display_area: &Rectangle,
+    ctx: &mut AppContext,
+    sm_digit_style: SevenSegmentStyle<Rgb565>,
+) {
     let mut string = String::<2>::new();
     write!(string, "{:02}", seconds).expect("Seconds will always be valid for formatting");
     let seconds_text = TextBox::new(
@@ -297,6 +359,7 @@ async fn seconds(seconds: u8, display_area: &Rectangle, ctx: &mut AppContext, sm
         Rectangle::new(Point::zero(), SEC_SIZE),
         sm_digit_style,
     );
-    let positioned_seconds = seconds_text.align_to(display_area, horizontal::Right, vertical::Bottom);
+    let positioned_seconds =
+        seconds_text.align_to(display_area, horizontal::Right, vertical::Bottom);
     ctx.draw(&positioned_seconds, Rgb565::BLACK).await;
 }

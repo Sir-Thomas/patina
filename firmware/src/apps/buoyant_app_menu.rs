@@ -56,6 +56,8 @@ impl BuoyantAppMenuApp {
                 Text::new(string, &FONT_10X20).foreground_color(Rgb565::BLACK)
                     .padding(Edges::Leading, 30),
             )).with_horizontal_alignment(HorizontalAlignment::Leading)
+        } else {
+            Capsule.foreground_color(Rgb565::BLACK)
         })
     }
 }

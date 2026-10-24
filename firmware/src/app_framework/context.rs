@@ -4,13 +4,13 @@ use embassy_sync::mutex::Mutex;
 use embassy_sync::watch::DynAnonReceiver;
 use embassy_time::Duration;
 use nrf_sdc::mpsl::Flash;
-use pinetime_bsp::BrightnessLevel;
 use pinetime_bsp::vibrator::Vibrator;
+use pinetime_bsp::{BrightnessLevel, ScreenOrientation};
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
 use time::PrimitiveDateTime;
 
 use crate::app_framework::prelude::*;
-use crate::signals::{ADJUST_TIME, BATTERY, CHANGE_DISPLAY_STATE, CURRENT_TIME};
+use crate::signals::{ADJUST_TIME, BATTERY, CHANGE_DISPLAY_STATE, CURRENT_TIME, FLIP_SCREEN};
 
 const VALID_BIT_ADDRESS: u32 = 0x7BFE8;
 const VALID_BIT_VALUE: u32 = 1;
@@ -155,6 +155,23 @@ impl AppContext {
             }
         } else {
             info!("Firmware already validated");
+        }
+    }
+
+    pub async fn rotate_screen(&mut self) {
+        info!("[Context] Flipping screen");
+        FLIP_SCREEN.signal(());
+        match self.display.orientation() {
+            ScreenOrientation::Normal => {
+                self.display
+                    .set_orientation(ScreenOrientation::Flipped)
+                    .await
+            }
+            ScreenOrientation::Flipped => {
+                self.display
+                    .set_orientation(ScreenOrientation::Normal)
+                    .await
+            }
         }
     }
 }

@@ -17,3 +17,5 @@ pub static EVENT_QUEUE: Channel<ThreadModeRawMutex, SystemEvent, EVENT_QUEUE_SIZ
 
 pub static REFRESH_TIMEOUT: Signal<ThreadModeRawMutex, ()> = Signal::new();
 pub static CHANGE_DISPLAY_STATE: Signal<ThreadModeRawMutex, bool> = Signal::new();
+
+pub static FLIP_SCREEN: Signal<ThreadModeRawMutex, ()> = Signal::new();

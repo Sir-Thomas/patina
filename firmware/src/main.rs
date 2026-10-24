@@ -6,7 +6,7 @@ use defmt_rtt as _;
 use embassy_executor::Spawner;
 use embassy_nrf::interrupt::Priority;
 use panic_probe as _;
-use pinetime_bsp::{PineTime, ScreenOrientation};
+use pinetime_bsp::PineTime;
 
 mod app_framework;
 mod apps;
@@ -23,11 +23,7 @@ async fn main(spawner: Spawner) {
     config.lfclk_source = embassy_nrf::config::LfclkSource::ExternalXtal;
     config.gpiote_interrupt_priority = Priority::P2;
     config.time_interrupt_priority = Priority::P2;
-    let mut board = PineTime::new(config).await;
-    #[cfg(not(feature = "baremetal"))] // TODO: Turn this into a setting
-    board
-        .set_screen_orientation(ScreenOrientation::Flipped)
-        .await;
+    let board = PineTime::new(config).await;
 
     info!("[main] Spawning systick task");
     spawner.must_spawn(tasks::systick::systick_task());

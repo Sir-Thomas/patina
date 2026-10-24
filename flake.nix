@@ -26,6 +26,10 @@
             inherit system;
             pkgs = import inputs.nixpkgs {
               inherit system;
+              config.allowUnfree = true;
+              config.permittedInsecurePackages = [
+                "python3.14-ecdsa-0.19.2"
+              ];
               overlays = [
                 inputs.self.overlays.default
               ];
@@ -44,6 +48,7 @@
               cargo
               rustfmt
               rust-src
+              llvm-tools-preview
             ])
             ++ [
               targets.thumbv7em-none-eabi.latest.rust-std
@@ -59,6 +64,7 @@
               rustToolchain
               openssl
               pkg-config
+              cargo-binutils
               cargo-deny
               cargo-edit
               cargo-watch
@@ -66,6 +72,16 @@
               probe-rs-tools
               self.formatter.${system}
               llvmPackages.libclang
+              python3
+              python3.pkgs.pip
+              python3.pkgs.cryptography
+              python3.pkgs.intelhex
+              python3.pkgs.click
+              python3.pkgs.cbor2
+              python3.pkgs.setuptools
+              python3.pkgs.pyyaml
+              python3.pkgs.pytest
+              adafruit-nrfutil
             ];
 
             env = {

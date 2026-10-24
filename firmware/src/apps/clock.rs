@@ -143,7 +143,7 @@ impl WatchApp for ClockApp {
             }
             SystemEvent::Touch(event) => match event.gesture {
                 TouchGesture::SwipeDown => EventResponse::SwitchApp(AppId::Settings),
-                TouchGesture::SwipeUp => EventResponse::SwitchApp(AppId::BuoyantAppMenu),
+                TouchGesture::SwipeUp => EventResponse::SwitchApp(AppId::AppMenu),
                 _ => EventResponse::Ignore,
             },
             SystemEvent::BluetoothConnected => {

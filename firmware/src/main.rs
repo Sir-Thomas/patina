@@ -26,10 +26,10 @@ async fn main(spawner: Spawner) {
     let board = PineTime::new(config).await;
 
     info!("[main] Spawning systick task");
-    spawner.must_spawn(tasks::systick::systick_task());
+    spawner.spawn(tasks::systick::systick_task().unwrap());
 
     info!("[main] Spawning app manager task");
-    spawner.must_spawn(tasks::app_manager::app_manager(spawner, board));
+    spawner.spawn(tasks::app_manager::app_manager(spawner, board).unwrap());
 }
 
 fn update_vtable() {

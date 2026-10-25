@@ -108,13 +108,21 @@ pub async fn ble_runner(
     };
 
     let resources = RESOURCES.init(BleResources::new());
-    let stack = STACK.init(trouble_host::new(bluetooth.sdc, resources).set_random_address(address));
+    let stack = STACK.init(
+        trouble_host::new(bluetooth.sdc, resources)
+            .set_random_address(address)
+            .build(),
+    );
 
+    let mut peripheral = stack.peripheral();
+    let runner = stack.runner();
+    /*
     let Host {
         mut peripheral,
         runner,
         ..
     } = stack.build();
+    */
 
     let Ok(gatt_server) =
         PatinaGattServer::new_with_config(GapConfig::Peripheral(PeripheralConfig {
@@ -129,8 +137,8 @@ pub async fn ble_runner(
 
     let server = SERVER.init(gatt_server);
 
-    spawner.must_spawn(mpsl_task(bluetooth.mpsl));
-    spawner.must_spawn(host_task(runner));
+    spawner.spawn(mpsl_task(bluetooth.mpsl).unwrap());
+    spawner.spawn(host_task(runner).unwrap());
     loop {
         match advertise(&mut peripheral, &server, stack).await {
             Ok(conn) => connection_events(&conn, &server, &mut dfu).await,
@@ -159,7 +167,7 @@ async fn advertise<'a, 'b, 'c, C: Controller>(
     let advertiser_len = AdStructure::encode_slice(
         &[
             AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
-            AdStructure::ServiceUuids16(&[service::BATTERY.to_le_bytes()]),
+            AdStructure::CompleteServiceUuids16(&[service::BATTERY.to_le_bytes()]),
             AdStructure::CompleteLocalName(NAME.as_bytes()),
         ],
         &mut advertiser_data[..],
@@ -260,13 +268,13 @@ async fn handle_write_event(
 ) -> Result<(), BleError> {
     let handle = event.handle();
     if handle == server.cts.current_time.handle {
-        let data: [u8; 10] = event.data().try_into()?;
+        let data: [u8; 10] = event.with_data(|_, data| <[u8; 10]>::try_from(data))?;
         let reply = event.accept()?;
         debug!("[gatt] Write Event to Time Characteristic: {:?}", data);
         update_time(data);
         reply.send().await;
     } else if handle == server.nordic_dfu.control.handle {
-        let data: Vec<u8, 256> = event.data().try_into()?;
+        let data: Vec<u8, 256> = event.with_data(|_, data| Vec::<u8, 256>::from_slice(data))?;
         let reply = event.accept()?;
         debug!("[gatt] Write Event to DFU Control Point: {:?}", data);
         if let Ok((request, _)) = DfuRequest::decode(&data) {
@@ -278,7 +286,7 @@ async fn handle_write_event(
                 if let Err(e) = server
                     .nordic_dfu
                     .control
-                    .notify(&connection, &response)
+                    .notify(&connection, &response, false)
                     .await
                 {
                     info!("[gatt] Error notifying control: {:?}", e);
@@ -294,7 +302,7 @@ async fn handle_write_event(
         }
         reply.send().await;
     } else if handle == server.nordic_dfu.packet.handle {
-        let data: Vec<u8, 256> = event.data().try_into()?;
+        let data: Vec<u8, 256> = event.with_data(|_, data| Vec::<u8, 256>::from_slice(data))?;
         let reply = event.accept()?;
         debug!("[gatt] Write Event to DFU Packet: {:?}", data);
         let request = DfuRequest::Write { data: &data[..] };
@@ -306,7 +314,7 @@ async fn handle_write_event(
             if let Err(e) = server
                 .nordic_dfu
                 .control
-                .notify(&connection, &response)
+                .notify(&connection, &response, false)
                 .await
             {
                 info!("[gatt] Error notifying control: {:?}", e);
@@ -314,7 +322,7 @@ async fn handle_write_event(
             if let Err(e) = server
                 .nordic_dfu
                 .packet
-                .notify(&connection, &response)
+                .notify(&connection, &response, false)
                 .await
             {
                 info!("[gatt] Error notifying packet: {:?}", e);
@@ -327,11 +335,12 @@ async fn handle_write_event(
             cortex_m::peripheral::SCB::sys_reset();
         }
     } else {
-        info!(
-            "[gatt] Write Event to unknown handle: {:?}, data: {:?}",
-            handle,
-            event.data()
-        );
+        event.with_data(|offset, data| {
+            info!(
+                "[gatt] Write Event to unknown handle: {:?}, offset: {:?}, data: {:?}",
+                handle, offset, data
+            )
+        });
     }
     Ok(())
 }

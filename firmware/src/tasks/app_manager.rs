@@ -27,15 +27,15 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
         board.vibrator,
     );
     info!("[App Manager] Spawning Battery task");
-    spawner.must_spawn(tasks::battery::battery_task(board.battery));
+    spawner.spawn(tasks::battery::battery_task(board.battery).unwrap());
     info!("[App Manager] Spawning button task");
-    spawner.must_spawn(tasks::button::button_task(board.button));
+    spawner.spawn(tasks::button::button_task(board.button).unwrap());
     info!("[App Manager] Spawning touch task");
-    spawner.must_spawn(tasks::touch::touch_task(board.touchscreen));
+    spawner.spawn(tasks::touch::touch_task(board.touchscreen).unwrap());
     info!("[App Manager] Spawning display timeout task");
-    spawner.must_spawn(tasks::display_timeout::display_timeout_task());
+    spawner.spawn(tasks::display_timeout::display_timeout_task().unwrap());
     info!("[App Manager] Spawning BLE tasks");
-    spawner.must_spawn(ble_runner(board.bluetooth, board.spi_flash.flash, spawner));
+    spawner.spawn(ble_runner(board.bluetooth, board.spi_flash.flash, spawner).unwrap());
     info!("[App Manager] All tasks spawned, waiting for first event");
     // Wait for first systick to ensure clock is available
     receiver.receive().await;

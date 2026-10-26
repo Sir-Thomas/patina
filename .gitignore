@@ -1,8 +1,8 @@
 /.direnv
 /.venv
 /target
-/scripts/imgtool
-/scripts/imgtool.py
+/scripts/imgtool/__pycache__
+/scripts/imgtool/keys/__pycache__
 /images
 Justfile.local
 memory.x

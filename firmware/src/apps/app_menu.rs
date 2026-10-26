@@ -1,8 +1,12 @@
-use embedded_text::{alignment::VerticalAlignment, style::TextBoxStyleBuilder};
-use heapless::format;
-use pinetime_bsp::touch::TouchEvent;
+use buoyant::{if_view, primitives::Size, view::prelude::*};
+use embedded_graphics::{mono_font::ascii::FONT_10X20, pixelcolor::Rgb565, prelude::RgbColor};
+use heapless::{String, format};
+use pinetime_bsp::touch::{TouchEvent, TouchGesture};
 
-use crate::{app_framework::prelude::*, apps::{ALL_APPS, APP_COUNT, AppId}};
+use crate::{
+    app_framework::{AppContext, EventResponse, SystemEvent, WatchApp},
+    apps::{ALL_APPS, APP_COUNT, AppId},
+};
 
 pub struct AppMenuApp {
     scroll_offset: usize,
@@ -10,7 +14,7 @@ pub struct AppMenuApp {
 }
 
 impl AppMenuApp {
-    fn handle_touch(&mut self, touch_event: TouchEvent) -> EventResponse{
+    fn handle_touch(&mut self, touch_event: TouchEvent) -> EventResponse {
         match touch_event.gesture {
             TouchGesture::SwipeDown => {
                 if self.scroll_offset == 0 {
@@ -26,9 +30,7 @@ impl AppMenuApp {
                 self.scroll_offset += 1;
                 EventResponse::Rerender
             }
-            TouchGesture::Tap => {
-                self.launch_app(touch_event.location.y)
-            }
+            TouchGesture::Tap => self.launch_app(touch_event.location.y),
             _ => EventResponse::Ignore,
         }
     }
@@ -42,23 +44,21 @@ impl AppMenuApp {
         }
     }
 
-    async fn draw_app(&self, ctx: &mut AppContext, i: usize) {
+    fn draw_app(&self, i: usize) -> impl View<Rgb565, ()> {
         let index = self.scroll_offset * 4 + i;
         let mut string = String::<16>::new();
         if index < self.applist.len() {
-            string = format!("{:?}", self.applist[index]).expect("App names are formattable");
+            string = format!("{:?}", self.applist[index]).unwrap();
         }
-        let text_style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-        let centered = TextBoxStyleBuilder::new()
-            .vertical_alignment(VerticalAlignment::Middle)
-            .build();
-        let textbox = TextBox::with_textbox_style(
-            string.as_str(),
-            Rectangle::new(Point::new(0, i as i32 * 60), Size::new(240, 60)),
-            text_style,
-            centered,
-        );
-        ctx.draw(&textbox, Rgb565::BLACK).await;
+        if_view!((index < self.applist.len()) {
+            ZStack::new((
+                Capsule.foreground_color(Rgb565::GREEN),
+                Text::new(string, &FONT_10X20).foreground_color(Rgb565::BLACK)
+                    .padding(Edges::Leading, 30),
+            )).with_horizontal_alignment(HorizontalAlignment::Leading)
+        } else {
+            Capsule.foreground_color(Rgb565::BLACK)
+        })
     }
 }
 
@@ -81,23 +81,28 @@ impl WatchApp for AppMenuApp {
     async fn on_start(&mut self, _ctx: &mut AppContext) {
         // Initialize app state
     }
-    
+
     async fn on_stop(&mut self, _ctx: &mut AppContext) {
         // Clean up app state
     }
 
     async fn on_event(&mut self, event: SystemEvent, _ctx: &mut AppContext) -> EventResponse {
         match event {
-            SystemEvent::Touch(touch_event) => {
-                self.handle_touch(touch_event)
-            }
-            _ => EventResponse::Ignore
+            SystemEvent::Touch(touch_event) => self.handle_touch(touch_event),
+            _ => EventResponse::Ignore,
         }
     }
 
     async fn render(&mut self, ctx: &mut AppContext) {
-        for i in 0..4 {
-            self.draw_app(ctx, i).await;
-        }
+        let mut captures = ();
+        let menu = VStack::new((
+            self.draw_app(0),
+            self.draw_app(1),
+            self.draw_app(2),
+            self.draw_app(3),
+        ))
+        .with_spacing(10);
+        let view = menu.as_drawable(Size::new(240, 240), Rgb565::WHITE, &mut captures);
+        ctx.draw_screen(&view).await;
     }
 }

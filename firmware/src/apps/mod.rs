@@ -3,10 +3,10 @@ use crate::define_apps;
 
 define_apps! {
     Alarm => alarm::AlarmApp,
-    AppMenu => buoyant_app_menu::BuoyantAppMenuApp,
+    AppMenu => app_menu::AppMenuApp,
     Buoyant => buoyant::BuoyantApp,
     Clock => clock::ClockApp,
     HelloWorld => hello_world::HelloWorldApp,
-    Settings => buoyant_settings::SettingsApp,
+    Settings => settings::SettingsApp,
     Stopwatch => stopwatch::StopwatchApp,
 }

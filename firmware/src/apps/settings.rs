@@ -1,11 +1,20 @@
-use embedded_icon::{NewIcon, mdi};
-use embedded_text::{
-    alignment::{HorizontalAlignment, VerticalAlignment},
-    style::TextBoxStyleBuilder,
+use crate::app_framework::{AppContext, EventResponse, SystemEvent, WatchApp};
+use buoyant::{match_view, view::prelude::*};
+use embedded_graphics::{mono_font::ascii::FONT_10X20, pixelcolor::Rgb565, prelude::*};
+use embedded_icon::{
+    Icon, NewIcon,
+    mdi::size48px::{
+        Brightness5, Brightness6, Brightness7, Flashlight, Information, ScreenRotation,
+    },
 };
+use heapless::{String, format};
 use pinetime_bsp::{BrightnessLevel, touch::TouchGesture};
 
-use crate::app_framework::prelude::*;
+struct BrightnessIcons {
+    low: Icon<Rgb565, Brightness5>,
+    mid: Icon<Rgb565, Brightness6>,
+    high: Icon<Rgb565, Brightness7>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SettingsScreen {
@@ -15,6 +24,10 @@ enum SettingsScreen {
 }
 
 pub struct SettingsApp {
+    brightness_icons: BrightnessIcons,
+    flashlight_icon: Icon<Rgb565, Flashlight>,
+    info_icon: Icon<Rgb565, Information>,
+    screen_rotation_icon: Icon<Rgb565, ScreenRotation>,
     screen: SettingsScreen,
     settings: Settings,
 }
@@ -22,6 +35,14 @@ pub struct SettingsApp {
 impl WatchApp for SettingsApp {
     fn new() -> Self {
         SettingsApp {
+            brightness_icons: BrightnessIcons {
+                low: Brightness5::new(Rgb565::BLACK),
+                mid: Brightness6::new(Rgb565::BLACK),
+                high: Brightness7::new(Rgb565::BLACK),
+            },
+            flashlight_icon: Flashlight::new(Rgb565::BLACK),
+            info_icon: Information::new(Rgb565::BLACK),
+            screen_rotation_icon: ScreenRotation::new(Rgb565::BLACK),
             screen: SettingsScreen::Main,
             settings: Settings::default(),
         }
@@ -67,53 +88,17 @@ impl WatchApp for SettingsApp {
 
     async fn render(&mut self, ctx: &mut AppContext) {
         ctx.set_brightness(self.settings.brightness);
-        let display_area = Rectangle::new(Point::zero(), Size::new(240, 240));
-        match self.screen {
-            SettingsScreen::Main => {
-                self.draw_main_screen(ctx, &display_area).await;
-            }
+        let mut captures = ();
+        let screen = match_view!(self.screen, {
+            SettingsScreen::Main => self.main_screen(),
             SettingsScreen::Flashlight => {
                 ctx.set_brightness(BrightnessLevel::High);
-                ctx.fill_display(Rgb565::WHITE).await;
-                let flashlight_icon = mdi::size48px::Flashlight::new(Rgb565::CSS_LIGHT_GRAY);
-                let flashlight_icon = Image::new(&flashlight_icon, Point::zero()).align_to(
-                    &display_area,
-                    horizontal::Center,
-                    vertical::Center,
-                );
-                ctx.draw(&flashlight_icon, Rgb565::WHITE).await;
-            }
-            SettingsScreen::Firmware => {
-                let validated = ctx.firmware_is_validated();
-                let bounds = Rectangle::new(Point::new(10, 10), Size::new(220, 220));
-                let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-                let mut string = String::<256>::new();
-                write!(
-                    string,
-                    "Firmware: Patina\nVersion: {}\nValidated: {}\nBattery: {}V",
-                    env!("CARGO_PKG_VERSION"),
-                    validated,
-                    ctx.battery().2 as f32 / 1000.0,
-                )
-                .expect("All inputs are formattable");
-                let text = TextBox::new(string.as_str(), bounds, style);
-                ctx.draw(&text, Rgb565::BLACK).await;
-                if !validated {
-                    let style = MonoTextStyle::new(&FONT_10X20, Rgb565::BLACK);
-                    let centered = TextBoxStyleBuilder::new()
-                        .alignment(HorizontalAlignment::Center)
-                        .vertical_alignment(VerticalAlignment::Middle)
-                        .build();
-                    let validate = TextBox::with_textbox_style(
-                        "Validate Firmware",
-                        Rectangle::new(Point::new(10, 180), Size::new(220, 50)),
-                        style,
-                        centered,
-                    );
-                    ctx.draw(&validate, Rgb565::GREEN).await;
-                }
-            }
-        }
+                self.flashlight_screen()
+            },
+            SettingsScreen::Firmware => self.firmware_screen(ctx.firmware_is_validated(), ctx.battery().2, ctx.battery().0),
+        });
+        let view = screen.as_drawable(Size::new(240, 240), Rgb565::BLACK, &mut captures);
+        ctx.draw_screen(&view).await;
     }
 }
 
@@ -134,57 +119,101 @@ impl SettingsApp {
             self.screen = SettingsScreen::Flashlight;
         } else if location.x > 120 && location.y > 120 {
             self.screen = SettingsScreen::Firmware;
+        } else {
+            ctx.rotate_screen().await;
         }
         EventResponse::Rerender
     }
 
-    async fn draw_main_screen(&self, ctx: &mut AppContext, display_area: &Rectangle) {
-        const OFFSET: i32 = 60;
-        ctx.clear_display().await;
-        self.draw_brightness_icon(self.settings.brightness, ctx, display_area, OFFSET)
-            .await;
-        let flashlight_icon = mdi::size48px::Flashlight::new(Rgb565::CSS_LIGHT_GRAY);
-        let flashlight_icon = Image::new(&flashlight_icon, Point::zero())
-            .align_to(display_area, horizontal::Center, vertical::Center)
-            .translate(Point::new(OFFSET, -OFFSET));
-        ctx.draw(&flashlight_icon, Rgb565::BLACK).await;
-        let info_icon = mdi::size48px::Information::new(Rgb565::CSS_LIGHT_GRAY);
-        let info_icon = Image::new(&info_icon, Point::zero())
-            .align_to(display_area, horizontal::Center, vertical::Center)
-            .translate(Point::new(OFFSET, OFFSET));
-        ctx.draw(&info_icon, Rgb565::BLACK).await;
+    fn main_screen(&self) -> impl View<Rgb565, ()> {
+        VStack::new((
+            HStack::new((
+                self.brightness_icon(self.settings.brightness),
+                self.flashlight_icon(),
+            ))
+            .with_spacing(10),
+            HStack::new((self.screen_rotation_icon(), self.info_icon())).with_spacing(10),
+        ))
+        .with_spacing(10)
+        .padding(Edges::All, 10)
     }
 
-    async fn draw_brightness_icon(
+    fn brightness_icon(&self, brightness_level: BrightnessLevel) -> impl View<Rgb565, ()> {
+        ZStack::new((
+            Rectangle.corner_radius(25).foreground_color(Rgb565::GREEN),
+            match_view!(brightness_level, {
+                BrightnessLevel::Low => Image::new(&self.brightness_icons.low),
+                BrightnessLevel::Medium => Image::new(&self.brightness_icons.mid),
+                BrightnessLevel::High => Image::new(&self.brightness_icons.high),
+            }),
+        ))
+    }
+
+    fn flashlight_icon(&self) -> impl View<Rgb565, ()> {
+        ZStack::new((
+            Rectangle.corner_radius(25).foreground_color(Rgb565::GREEN),
+            Image::new(&self.flashlight_icon),
+        ))
+    }
+
+    fn screen_rotation_icon(&self) -> impl View<Rgb565, ()> {
+        ZStack::new((
+            Rectangle.corner_radius(25).foreground_color(Rgb565::GREEN),
+            Image::new(&self.screen_rotation_icon),
+        ))
+    }
+
+    fn info_icon(&self) -> impl View<Rgb565, ()> {
+        ZStack::new((
+            Rectangle.corner_radius(25).foreground_color(Rgb565::GREEN),
+            Image::new(&self.info_icon),
+        ))
+    }
+
+    fn flashlight_screen(&self) -> impl View<Rgb565, ()> {
+        ZStack::new((
+            Rectangle.foreground_color(Rgb565::WHITE),
+            Image::new(&self.flashlight_icon),
+        ))
+    }
+
+    fn firmware_screen(
         &self,
-        brightness_level: BrightnessLevel,
-        ctx: &mut AppContext,
-        display_area: &Rectangle,
-        offset: i32,
-    ) {
-        match brightness_level {
-            BrightnessLevel::Low => {
-                let brightness_icon = mdi::size48px::Brightness5::new(Rgb565::CSS_LIGHT_GRAY);
-                let brightness_icon = Image::new(&brightness_icon, Point::zero())
-                    .align_to(display_area, horizontal::Center, vertical::Center)
-                    .translate(Point::new(-offset, -offset));
-                ctx.draw(&brightness_icon, Rgb565::BLACK).await;
-            }
-            BrightnessLevel::Medium => {
-                let brightness_icon = mdi::size48px::Brightness6::new(Rgb565::CSS_LIGHT_GRAY);
-                let brightness_icon = Image::new(&brightness_icon, Point::zero())
-                    .align_to(display_area, horizontal::Center, vertical::Center)
-                    .translate(Point::new(-offset, -offset));
-                ctx.draw(&brightness_icon, Rgb565::BLACK).await;
-            }
-            BrightnessLevel::High => {
-                let brightness_icon = mdi::size48px::Brightness7::new(Rgb565::CSS_LIGHT_GRAY);
-                let brightness_icon = Image::new(&brightness_icon, Point::zero())
-                    .align_to(display_area, horizontal::Center, vertical::Center)
-                    .translate(Point::new(-offset, -offset));
-                ctx.draw(&brightness_icon, Rgb565::BLACK).await;
-            }
-        }
+        validated: bool,
+        battery_level: u32,
+        battery_percent: u8,
+    ) -> impl View<Rgb565, ()> {
+        let string: String<100> = format!(
+            "Firmware: Patina\nVersion: {}\nValidated: {}\nBattery: {}V, {}%",
+            env!("CARGO_PKG_VERSION"),
+            validated,
+            battery_level as f32 / 1000.0,
+            battery_percent,
+        )
+        .expect("All inputs are formattable");
+        VStack::new((
+            Text::new(string, &FONT_10X20).foreground_color(Rgb565::WHITE),
+            Spacer::default(),
+            ZStack::new((
+                Capsule.foreground_color(if validated {
+                    Rgb565::GREEN
+                } else {
+                    Rgb565::RED
+                }),
+                Text::new(
+                    if validated {
+                        "Firmware Validated"
+                    } else {
+                        "Validate Virmware"
+                    },
+                    &FONT_10X20,
+                ),
+            ))
+            .frame_sized(220, 50)
+            .with_horizontal_alignment(HorizontalAlignment::Center),
+        ))
+        .with_alignment(HorizontalAlignment::Leading)
+        .padding(Edges::All, 10)
     }
 }
 

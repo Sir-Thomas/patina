@@ -95,7 +95,7 @@ impl WatchApp for SettingsApp {
                 ctx.set_brightness(BrightnessLevel::High);
                 self.flashlight_screen()
             },
-            SettingsScreen::Firmware => self.firmware_screen(ctx.firmware_is_validated(), ctx.battery().2),
+            SettingsScreen::Firmware => self.firmware_screen(ctx.firmware_is_validated(), ctx.battery().2, ctx.battery().0),
         });
         let view = screen.as_drawable(Size::new(240, 240), Rgb565::BLACK, &mut captures);
         ctx.draw_screen(&view).await;
@@ -177,12 +177,18 @@ impl SettingsApp {
         ))
     }
 
-    fn firmware_screen(&self, validated: bool, battery_level: u32) -> impl View<Rgb565, ()> {
+    fn firmware_screen(
+        &self,
+        validated: bool,
+        battery_level: u32,
+        battery_percent: u8,
+    ) -> impl View<Rgb565, ()> {
         let string: String<100> = format!(
-            "Firmware: Patina\nVersion: {}\nValidated: {}\nBattery: {}V",
+            "Firmware: Patina\nVersion: {}\nValidated: {}\nBattery: {}V, {}%",
             env!("CARGO_PKG_VERSION"),
             validated,
             battery_level as f32 / 1000.0,
+            battery_percent,
         )
         .expect("All inputs are formattable");
         VStack::new((

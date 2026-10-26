@@ -6,6 +6,7 @@ use crate::{
     signals::EVENT_QUEUE,
     tasks::ble::{
         clients::sync_time,
+        servers::battery_task,
         services::{cts::update_time, prelude::*},
     },
 };
@@ -25,6 +26,7 @@ use static_cell::StaticCell;
 use trouble_host::{Error, HostResources, prelude::*};
 
 mod clients;
+mod servers;
 mod services;
 
 // We have to pretend to be InfiniTime to get companion apps to connect
@@ -139,6 +141,7 @@ pub async fn ble_runner(
 
     spawner.spawn(mpsl_task(bluetooth.mpsl).unwrap());
     spawner.spawn(host_task(runner).unwrap());
+    spawner.spawn(battery_task(server).unwrap());
     loop {
         match advertise(&mut peripheral, &server, stack).await {
             Ok(conn) => connection_events(&conn, &server, &mut dfu).await,

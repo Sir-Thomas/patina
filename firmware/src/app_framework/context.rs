@@ -2,10 +2,10 @@ use defmt::info;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::mutex::Mutex;
 use embassy_sync::watch::DynAnonReceiver;
-use embassy_time::Duration;
+use embassy_time::{Delay, Duration};
 use nrf_sdc::mpsl::Flash;
 use pinetime_bsp::vibrator::Vibrator;
-use pinetime_bsp::{BrightnessLevel, ScreenOrientation};
+use pinetime_bsp::{Accelerometer, BrightnessLevel, PowerMode, ScreenOrientation};
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
 use time::PrimitiveDateTime;
 
@@ -16,6 +16,7 @@ const VALID_BIT_ADDRESS: u32 = 0x7BFE8;
 const VALID_BIT_VALUE: u32 = 1;
 
 pub struct AppContext {
+    accelerometer: Accelerometer,
     backlight: BacklightController,
     bluetooth_connected: bool,
     current_time_watcher: DynAnonReceiver<'static, PrimitiveDateTime>,
@@ -27,6 +28,7 @@ pub struct AppContext {
 
 impl AppContext {
     pub fn new(
+        accelerometer: Accelerometer,
         backlight: BacklightController,
         display: DisplayController,
         flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
@@ -34,6 +36,7 @@ impl AppContext {
     ) -> Self {
         let current_time_watcher = CURRENT_TIME.dyn_anon_receiver();
         Self {
+            accelerometer,
             backlight,
             bluetooth_connected: false,
             current_time_watcher,
@@ -109,6 +112,23 @@ impl AppContext {
 
     pub async fn short_vibration(&mut self) {
         self.vibrator.pulse(Duration::from_millis(15)).await;
+    }
+
+    pub async fn acceleration(&mut self) -> (i16, i16, i16) {
+        self.accelerometer.get_accel_data().await.unwrap()
+    }
+
+    // TODO: move this somewhere better
+    pub async fn initialize_accelerometer(&mut self) {
+        self.accelerometer.init(&mut Delay).await.unwrap();
+        self.accelerometer.test().await.unwrap();
+    }
+
+    pub async fn disable_accelerometer(&mut self) {
+        self.accelerometer
+            .set_power_mode(PowerMode::Off)
+            .await
+            .unwrap();
     }
 
     pub fn battery(&self) -> (u8, bool, u32) {

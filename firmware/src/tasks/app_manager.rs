@@ -8,10 +8,10 @@ use embassy_executor::Spawner;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::mutex::Mutex;
 use nrf_sdc::mpsl::Flash;
-use pinetime_bsp::PineTime;
 use pinetime_bsp::backlight::BacklightController;
 use pinetime_bsp::display::DisplayController;
 use pinetime_bsp::vibrator::Vibrator;
+use pinetime_bsp::{Accelerometer, PineTime};
 
 use crate::signals::{EVENT_QUEUE, REFRESH_TIMEOUT};
 
@@ -21,6 +21,7 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     let receiver = EVENT_QUEUE.receiver();
     info!("[App Manager] Initializing App Manager");
     let mut app_manager = AppManager::new(
+        board.accelerometer,
         board.backlight,
         board.display,
         board.mpsl_flash,
@@ -58,6 +59,7 @@ struct AppManager {
 
 impl AppManager {
     fn new(
+        accelerometer: Accelerometer,
         backlight: BacklightController,
         display: DisplayController,
         flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
@@ -66,7 +68,7 @@ impl AppManager {
         let app_id = AppId::Clock;
         Self {
             app_id,
-            context: AppContext::new(backlight, display, flash, vibrator),
+            context: AppContext::new(accelerometer, backlight, display, flash, vibrator),
             current_app: AppInstance::new(app_id),
         }
     }

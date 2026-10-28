@@ -2,6 +2,7 @@ use crate::app_framework::prelude::*;
 use crate::define_apps;
 
 define_apps! {
+    Accelerometer => accelerometer::AccelerometerApp,
     Alarm => alarm::AlarmApp,
     AppMenu => app_menu::AppMenuApp,
     Buoyant => buoyant::BuoyantApp,

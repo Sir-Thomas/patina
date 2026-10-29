@@ -1,5 +1,5 @@
 [workspace]
-members = ["firmware", "simulator"]
+members = ["firmware", "simulator", "pinetime-bsp"]
 resolver = "3"
 
 [workspace.package]
@@ -10,9 +10,27 @@ repository = "https://github.com/Sir-Thomas/patina"
 license = "MIT OR Apache-2.0"
 publish = false
 
+[workspace.dependencies]
+defmt = "1.2.0"
+embassy-embedded-hal = "0.6.0"
+embassy-nrf = { version = "0.11.0", features = [
+    "gpiote",
+    "nfc-pins-as-gpio",
+    "nrf52832",
+    "time-driver-rtc1",
+    "time",
+] }
+embassy-sync = "0.8.0"
+embassy-time = "0.5.1"
+embedded-graphics = { version = "0.8.2", features = ["defmt"] }
+embedded-hal-async = { version = "1.0.0", features = ["defmt-03"] }
+embedded-layout = "0.4.2"
+lcd-async = "0.1.3"
+nrf-sdc = { version = "0.4.0", default-features = false, features = ["defmt", "nrf52832", "peripheral"] }
+spi-memory-async = "0.2.0"
+static_cell = "2.1.1"
+
 [patch.crates-io]
-#embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "ac1d8719b64cba62a132d12ba1cba107ce88afa8" }
-#lcd-async = { git = "https://github.com/okhsunrog/lcd-async.git", rev = "50efe0a30a4c68a1502049556b2ffb27c13b9539" }
 nrf-sdc = { git = "https://github.com/alexmoon/nrf-sdc.git", rev = "9cf87fa7883b89b2d4dc7cd94864da7927bd858c" }
 trouble-host = { git = "https://github.com/embassy-rs/trouble.git", rev = "43a14413508eb63a114df672f9a93dab624b717d" }
 

@@ -1,0 +1,23 @@
+[package]
+name = "pinetime-bsp"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bma425 = { path = "../../bma425-rs", features = ["defmt"] }
+cst816s-async = { version = "0.1.0", features = ["defmt"] }
+defmt = { workspace = true, optional = true }
+embassy-embedded-hal = { workspace = true }
+embassy-nrf = { workspace = true }
+embassy-sync = { workspace = true }
+embassy-time = { workspace = true }
+embedded-graphics = { workspace = true }
+embedded-hal-async = { workspace = true }
+embedded-layout = { workspace = true }
+lcd-async = { workspace = true }
+nrf-sdc = { workspace = true }
+spi-memory-async = { workspace = true }
+static_cell = { workspace = true }
+
+[features]
+defmt = [ "dep:defmt", "bma425/defmt", "cst816s-async/defmt", "embedded-graphics/defmt", "embedded-hal-async/defmt-03", "nrf-sdc/defmt"]

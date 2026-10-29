@@ -121,7 +121,11 @@ impl AppContext {
     // TODO: move this somewhere better
     pub async fn initialize_accelerometer(&mut self) {
         self.accelerometer.init(&mut Delay).await.unwrap();
-        self.accelerometer.test().await.unwrap();
+        self.accelerometer
+            .set_power_mode(PowerMode::Performance)
+            .await
+            .unwrap();
+        self.accelerometer.set_acc_conf().await.unwrap();
     }
 
     pub async fn disable_accelerometer(&mut self) {

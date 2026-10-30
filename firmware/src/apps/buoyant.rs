@@ -1,10 +1,5 @@
-use buoyant::{
-    if_view, match_view,
-    transition::Opacity,
-    view::{ViewMarker, prelude::*},
-};
+use buoyant::{if_view, match_view, view::prelude::*};
 use core::fmt::Write as _;
-use eg_seven_segment::SevenSegmentStyle;
 use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
 use embedded_icon::{
     Icon, NewIcon,

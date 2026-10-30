@@ -8,7 +8,10 @@ use embedded_icon::{
     },
 };
 use heapless::{String, format};
-use pinetime_bsp::{BrightnessLevel, touch::TouchGesture};
+use pinetime_bsp::{
+    BrightnessLevel,
+    touch::{Point, TouchGesture},
+};
 
 struct BrightnessIcons {
     low: Icon<Rgb565, Brightness5>,

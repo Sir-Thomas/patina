@@ -1,4 +1,4 @@
-use pinetime_bsp::touch::{TouchController, TouchEvent};
+use pinetime_bsp::touch::TouchController;
 
 use embassy_futures::select::{Either, select};
 

@@ -35,7 +35,7 @@ impl AppMenuApp {
         }
     }
 
-    fn launch_app(&self, y: i32) -> EventResponse {
+    fn launch_app(&self, y: i16) -> EventResponse {
         let index = self.scroll_offset * 4 + (y as usize / 60);
         if index < self.applist.len() {
             EventResponse::SwitchApp(self.applist[index])

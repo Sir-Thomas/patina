@@ -83,7 +83,7 @@ impl AppManager {
     async fn handle_event(&mut self, event: SystemEvent) {
         if self.context.display_is_off() {
             match event {
-                SystemEvent::ButtonPress => {
+                SystemEvent::ButtonPress | SystemEvent::Touch(_) => {
                     self.context.turn_on_display().await;
                     self.current_app.on_start(&mut self.context).await;
                     self.current_app.render(&mut self.context).await;

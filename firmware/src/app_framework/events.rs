@@ -4,6 +4,7 @@ use crate::apps::AppId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
 pub enum SystemEvent {
+    Alarm,
     BluetoothConnected,
     BluetoothDisconnected,
     ButtonPress, // TODO: Deprecate. Button press never handled by app

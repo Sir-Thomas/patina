@@ -22,7 +22,7 @@ embassy-sync = { workspace = true, features = ["defmt"] }
 embassy-time = { version = "0.5.1", features = ["defmt", "defmt-timestamp-uptime"] }
 embedded-graphics = { workspace = true }
 embedded-hal-async = { workspace = true }
-embedded-icon = { version = "0.0.1", features = ["32px", "48px"] }
+embedded-icon = { version = "0.0.1", features = ["32px", "48px", "144px"] }
 embedded-layout = { workspace = true }
 embedded-text = "0.7.3"
 heapless = { version = "0.9.3", features = ["defmt"] }

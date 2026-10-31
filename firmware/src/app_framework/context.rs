@@ -114,6 +114,10 @@ impl AppContext {
         self.vibrator.pulse(Duration::from_millis(15)).await;
     }
 
+    pub async fn vibration_pattern(&mut self, on: Duration, off: Duration, repetitions: u8) {
+        self.vibrator.pattern(on, off, repetitions).await;
+    }
+
     pub async fn acceleration(&mut self) -> (i16, i16, i16) {
         self.accelerometer.get_accel_data().await.unwrap()
     }

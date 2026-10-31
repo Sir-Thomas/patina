@@ -4,6 +4,7 @@ use crate::define_apps;
 define_apps! {
     Accelerometer => accelerometer::AccelerometerApp,
     Alarm => alarm::AlarmApp,
+    AlarmRing => alarm_ring::AlarmRing,
     AppMenu => app_menu::AppMenuApp,
     Buoyant => buoyant::BuoyantApp,
     Clock => clock::ClockApp,

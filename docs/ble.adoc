@@ -1,14 +1,22 @@
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
 = Bluetooth Low Energy
 
 == Goal
 
-This document will be used to agregate BLE information and to track implementation progress. We will start by implementing the basics, Time Sync, Battery Level, and DFU. After that we will need to decide what BLE services are worth pursuing.
+This document will be used to aggregate BLE information and to track implementation progress. We will start by implementing the basics, Time Sync, Battery Level, and DFU. After that we will need to decide what BLE services are worth pursuing.
 
 My initial plan was to re-implement all InfiniTime services so the device would "just work" with existing companion apps. I have since changed my mind on this issue. Patina will implement its own services as we see fit. This will give us many advantages as the firmware is developed. Most notably, we do not have to advertise as "InfiniTime". It also allows us to use the simpler secure dfu service for OTA updates. Finally, we will not be restricted in any way as we continue to implement new features.
 
-There is a downside. Since we are not pretending to be running InfiniTime, we will have to write our own companion apps and/or update existing apps that support our device. The flexibility this provides is ultimately worth the tradeoff.
+There is a downside. Since we are not pretending to be running InfiniTime, we will have to write our own companion apps and/or update existing apps that support our device. The flexibility this provides is ultimately worth the trade-off.
 
-NOTE: GadgetBridge allows us to add an unsupported device. Long-press `Patina` and select `PineTime` in the dropdown to add the device.
+TIP: GadgetBridge allows us to add an unsupported device. Long-press `Patina` and select `PineTime` in the dropdown to add the device.
 
 == Services and Characteristics
 

@@ -1,7 +1,24 @@
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
 = Buoyant
 
-[CAUTION]
-.Old Explanation
+== Update - Buoyant works now!!
+
+Updating to buoyant 0.8.0-alpha.0 fixed my rendering issues.
+I am currently in the process of transitioning rendering to use buoyant fully.
+I will likely have to completely rework the input and events.
+Buoyant can handle events in some way, but I still need to figure out how best to integrate it into the firmware.
+
+I have left the following in for reference.
+Eventually, I'll type up a better explanation of the buoyant bug and what changed to fix it.
+
+[NOTE]
 ====
 I have a branch where I was testing out the buoyant crate. 
 It seems like a nice framework that would simplify a lot of layout and app development.
@@ -12,18 +29,17 @@ Images and shapes will only display in the first framebuffer, but not any others
 If we can fix this bug, I would love to use Buoyant.
 I tried to test it with the non-async driver, but it still is not a great experience.
 We either have to clear the screen each frame, or put a background behind each element.
-The background is drawn separately from the elements, so there is still a noticable flicker when the components update.
+The background is drawn separately from the elements, so there is still a noticeable flicker when the components update.
 
 A new hardware revision of the PineTime could solve these issues if we get faster SPI or more RAM.
-If we can push pixels to the display fast enough, the flicker might be reduced to the point where it is no longer noticable.
+If we can push pixels to the display fast enough, the flicker might be reduced to the point where it is no longer noticeable.
 Likewise, if we have enough RAM for a full framebuffer, we could draw to it and update the whole screen at one time.
 
 If something changes, I will come back and re-implement buoyant, but until then, we will have to stick with raw embedded-graphics.
 ====
 
-== Update - Buoyant works now!!
+== Todo
 
-Updating to buoyant 0.8.0-alpha.0 fixed my rendering issues.
-I am currently in the process of transitioning rendering to use buoyant fully.
-I will likely have to completely rework the input and events.
-Buoyant can handle events in some way, but I still need to figure out how best to integrate it into the firmware.
+* [ ] Switch remaining apps to buoyant
+* [ ] Switch touch handling to buoyant
+* [ ] Rewrite Documentation

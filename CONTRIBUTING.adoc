@@ -1,7 +1,15 @@
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
 == How Can I Help?
 
 * Improve Architecture
-** The sooner we can stabilize the architechture and App API, the sooner we can get to the fun stuff. Any input is greatly appreciated. I am very new to this and I'm sure I have made many mistakes.
+** The sooner we can stabilize the architecture and App API, the sooner we can get to the fun stuff. Any input is greatly appreciated. I am very new to this and I'm sure I have made many mistakes.
 * Contribute to Drivers
 ** Drivers are the foundation of the OS. The better the drivers, the better the OS. Please contribute to or, if necessary, rewrite any drivers that we use to **add functionality**, **improve performance**, and **eliminate bugs**.
 * Update Documentation
@@ -9,9 +17,30 @@
 * **Write Apps!**
 ** Apps are what users care about. The goal is to have a wide variety of apps available that users can install as desired.
 
-CAUTION: The App API is not stable yet. While it is our goal to provide a consistant API so that apps will not break from updates, we are not there yet. Any apps written until then may encounter breaking changes as we continue to determine the needs of the OS and make necessary adjustments.
+[NOTE]
+====
+The App API is not stable yet.
+While it is our goal to provide a consistent API so that apps will not break from updates, we are not there yet.
+Any apps written until then may encounter breaking changes as we continue to determine the needs of the OS and make necessary adjustments.
+====
 
 * Give Feedback
 ** Use the OS in your daily life. Find out what works well and what doesn't and let us know. We have lots of plans for future improvements and added functionality, but it always helps to get a broader idea of what people want and use.
 
-WARNING: Bluetooth functionality is not well tested yet. The bootloader makes it hard to brick the device, but there is always a risk when flashing a sealed PineTime.
+[WARNING]
+====
+There is always a chance of bricking your device when flashing a sealed PineTime.
+I have been running Patina with no issues for months with dozens of successful updates, but there are no guarantees.
+Do not use this firmware on a sealed PineTime unless you are truly interested in working on it and willing to open up your device if something goes wrong.
+====
+
+== AI Use
+
+Learning is one of the primary goals of this project and code generation is counterproductive to that goal.
+If you will be submitting a pull request, please make sure the code was primarily written by a human.
+
+AI use is encouraged where it enhances learning.
+
+* **Research:**  Feel free to use AI to explain complicated topics, research implementation details, and evaluate your code.
+* **Debugging:** AI is great at finding bugs. Feel free to use it for debugging purposes, but make sure you understand the fix before implementing it.
+* **Large Changes:** If you are working on a larger section of code, please use the AI only for guidance, not code generation. Direct the AI to explain things well enough for you to implement it yourself.

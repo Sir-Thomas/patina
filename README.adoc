@@ -4,6 +4,36 @@
 
 == Goals
 
+=== Learning
+
+This firmware is primarily a hobby project for me to learn rust and embedded development.
+I want the firmware to continue to be useful for others with similar goals.
+Feel free to contact me if you have any questions.
+
+==== How we achieve this:
+
+* Community
+** Right now, it is just me, but as people join, discussions and teaching should be a regular part of the community.
+* **Documentation**
+** Documentation should be focused on learning, not only technical details.
+** Guides must be kept up to date to allow beginners to jump in quickly.
+* Responsible AI Use
+** AI is encouraged only where it supports learning. A repo full of AI generated code that no-one understands is not beneficial.
+
+=== Extensibility
+
+The firmware is just a foundation, a great OS needs a community to customize it and write apps.
+
+==== How we achieve this:
+
+* **Documentation**
+** Write thorough and easy to follow guides on getting started and building the OS
+** Create a comprehensive guide on writing an app
+* Provide simple **tooling** to create and test apps
+** Script to create a new app
+** Emulator for quick development
+** Simple build tooling for compiling a new app into the firmware
+
 === Reliability
 
 For a device you use every day, reliability is key.
@@ -19,21 +49,6 @@ We strive to eliminate bugs and provide a seamless user experience.
 ** Are documented well
 ** Tested thoroughly
 ** Provide stable APIs
-** Work with Embassy's Async Runtime
-
-=== Extensibility
-
-The firmware is just a foundation, a great OS comes when the community begins to customize and write apps on top of it.
-
-==== How we achieve this:
-
-* **Documentation**
-** Write thorough and easy to follow guides on getting started and building the OS
-** Create a comprehensive guide on writing an app
-* Provide simple **tooling** to create and test apps
-** Script to create a new app
-** Emulator for quick development
-** Simple build tooling for compiling a new app into the firmware
 
 == Getting Started
 

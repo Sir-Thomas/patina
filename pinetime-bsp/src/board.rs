@@ -22,6 +22,7 @@ use crate::ble::{BleController, build_mpsl, build_sdc};
 use crate::button::Button;
 use crate::display::DisplayController;
 use crate::flash::FlashController;
+use crate::heart_rate::HeartRateSensor;
 use crate::touch::TouchController;
 use crate::vibrator::Vibrator;
 
@@ -69,6 +70,8 @@ pub struct PineTime {
     pub button: Button,
     /// Display TODO: Improve this later
     pub display: DisplayController,
+    /// Heart Rate Sensor
+    pub heart_rate: HeartRateSensor,
     /// MPSL Flash
     pub mpsl_flash: &'static Mutex<NoopRawMutex, mpsl::Flash<'static>>,
     /// SPI Flash
@@ -124,6 +127,12 @@ impl PineTime {
                 ),
                 p.P0_18,
                 p.P0_26,
+            )
+            .await,
+            heart_rate: HeartRateSensor::new(
+                I2cDevice::new(&*i2c_bus),
+                Input::new(p.P0_30, Pull::Up),
+                Output::new(p.P0_29, Level::Low, OutputDrive::Standard),
             )
             .await,
             mpsl_flash,

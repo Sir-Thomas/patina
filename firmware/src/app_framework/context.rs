@@ -4,6 +4,7 @@ use embassy_sync::mutex::Mutex;
 use embassy_sync::watch::DynAnonReceiver;
 use embassy_time::{Delay, Duration};
 use nrf_sdc::mpsl::Flash;
+use pinetime_bsp::heart_rate::HeartRateSensor;
 use pinetime_bsp::vibrator::Vibrator;
 use pinetime_bsp::{Accelerometer, BrightnessLevel, PowerMode, ScreenOrientation};
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
@@ -22,6 +23,7 @@ pub struct AppContext {
     current_time_watcher: DynAnonReceiver<'static, PlainDateTime>,
     display: DisplayController,
     flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
+    heart_rate: HeartRateSensor,
     screen_on: bool,
     vibrator: Vibrator,
 }
@@ -32,6 +34,7 @@ impl AppContext {
         backlight: BacklightController,
         display: DisplayController,
         flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
+        heart_rate: HeartRateSensor,
         vibrator: Vibrator,
     ) -> Self {
         let current_time_watcher = CURRENT_TIME.dyn_anon_receiver();
@@ -42,6 +45,7 @@ impl AppContext {
             current_time_watcher,
             display,
             flash,
+            heart_rate,
             screen_on: true,
             vibrator,
         }

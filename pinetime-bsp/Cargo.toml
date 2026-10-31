@@ -14,6 +14,7 @@ embassy-time = { workspace = true }
 embedded-graphics = { workspace = true }
 embedded-hal-async = { workspace = true }
 embedded-layout = { workspace = true }
+hrs3300 = "0.1.0"
 lcd-async = { workspace = true }
 nrf-sdc = { workspace = true }
 spi-memory-async = { workspace = true }

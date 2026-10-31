@@ -10,6 +10,7 @@ use embassy_sync::mutex::Mutex;
 use nrf_sdc::mpsl::Flash;
 use pinetime_bsp::backlight::BacklightController;
 use pinetime_bsp::display::DisplayController;
+use pinetime_bsp::heart_rate::HeartRateSensor;
 use pinetime_bsp::vibrator::Vibrator;
 use pinetime_bsp::{Accelerometer, PineTime};
 
@@ -65,12 +66,20 @@ impl AppManager {
         backlight: BacklightController,
         display: DisplayController,
         flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
+        heart_rate: HeartRateSensor,
         vibrator: Vibrator,
     ) -> Self {
         let app_id = AppId::Clock;
         Self {
             app_id,
-            context: AppContext::new(accelerometer, backlight, display, flash, vibrator),
+            context: AppContext::new(
+                accelerometer,
+                backlight,
+                display,
+                flash,
+                heart_rate,
+                vibrator,
+            ),
             current_app: AppInstance::new(app_id),
         }
     }

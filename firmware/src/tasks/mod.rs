@@ -1,3 +1,4 @@
+pub mod alarm;
 pub mod app_manager;
 pub mod battery;
 pub mod ble;

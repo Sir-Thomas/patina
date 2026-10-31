@@ -10,7 +10,7 @@ use crate::{
 
 pub struct AppMenuApp {
     scroll_offset: usize,
-    applist: [AppId; APP_COUNT - 3], // Exclude non-launchable apps
+    applist: [AppId; APP_COUNT - 4], // Exclude non-launchable apps
 }
 
 impl AppMenuApp {
@@ -64,7 +64,7 @@ impl AppMenuApp {
 
 impl WatchApp for AppMenuApp {
     fn new() -> Self {
-        let mut applist: [AppId; APP_COUNT - 3] = [AppId::HelloWorld; APP_COUNT - 3];
+        let mut applist: [AppId; APP_COUNT - 4] = [AppId::HelloWorld; APP_COUNT - 4];
         let mut i = 0;
         for app in ALL_APPS.iter() {
             if app.is_launchable() {

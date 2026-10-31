@@ -27,6 +27,8 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
         board.mpsl_flash,
         board.vibrator,
     );
+    info!("[App Manager] Spawning Alarm task");
+    spawner.spawn(tasks::alarm::alarm_task().unwrap());
     info!("[App Manager] Spawning Battery task");
     spawner.spawn(tasks::battery::battery_task(board.battery).unwrap());
     info!("[App Manager] Spawning button task");
@@ -81,6 +83,32 @@ impl AppManager {
     }
 
     async fn handle_event(&mut self, event: SystemEvent) {
+        // Events that act the same with the display on or off
+        match event {
+            SystemEvent::Alarm => {
+                info!("[Alarm] Ringing");
+                self.current_app.on_stop(&mut self.context).await;
+                self.current_app = AppInstance::new(AppId::AlarmRing);
+                self.app_id = AppId::AlarmRing;
+                self.current_app.render(&mut self.context).await;
+                if self.context.display_is_off() {
+                    self.context.turn_on_display().await;
+                    REFRESH_TIMEOUT.signal(());
+                }
+                self.current_app.on_start(&mut self.context).await;
+            }
+            SystemEvent::BluetoothConnected => {
+                info!("[Bluetooth] Connected");
+                self.context.set_bluetooth_connected(true);
+            }
+            SystemEvent::BluetoothDisconnected => {
+                info!("[Bluetooth] Disconnected");
+                self.context.set_bluetooth_connected(false);
+            }
+            _ => {}
+        }
+
+        // Event handling with display off
         if self.context.display_is_off() {
             match event {
                 SystemEvent::ButtonPress | SystemEvent::Touch(_) => {
@@ -89,19 +117,15 @@ impl AppManager {
                     self.current_app.render(&mut self.context).await;
                     REFRESH_TIMEOUT.signal(());
                 }
-                SystemEvent::BluetoothConnected => {
-                    self.context.set_bluetooth_connected(true);
-                }
-                SystemEvent::BluetoothDisconnected => {
-                    self.context.set_bluetooth_connected(false);
-                }
                 _ => {}
             }
             return;
         }
 
+        // Event handling with display off
         match event {
             SystemEvent::ScreenTimeout => {
+                self.switch_to(AppId::Clock).await;
                 self.current_app.on_stop(&mut self.context).await;
                 self.context.turn_off_display().await;
                 return;
@@ -109,12 +133,6 @@ impl AppManager {
             SystemEvent::ButtonPress => {
                 self.close_current_app().await;
                 return;
-            }
-            SystemEvent::BluetoothConnected => {
-                self.context.set_bluetooth_connected(true);
-            }
-            SystemEvent::BluetoothDisconnected => {
-                self.context.set_bluetooth_connected(false);
             }
             SystemEvent::Tick => {}
             _ => REFRESH_TIMEOUT.signal(()),

@@ -34,7 +34,7 @@ macro_rules! define_apps {
 
         impl AppId {
             pub fn is_launchable(&self) -> bool {
-                !matches!(self, AppId::AppMenu | AppId::Clock | AppId::Settings)
+                !matches!(self, AppId::AppMenu | AppId::Clock | AppId::Settings | AppId::AlarmRing)
             }
         }
 

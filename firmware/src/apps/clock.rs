@@ -1,15 +1,22 @@
 use defmt::{debug, info};
 use eg_seven_segment::SevenSegmentStyle;
-use embedded_graphics::image::ImageRawBE;
+use embedded_graphics::prelude::*;
+use embedded_graphics::{
+    image::{Image, ImageRawBE},
+    pixelcolor::Rgb565,
+    primitives::Rectangle,
+};
 use embedded_icon::{NewIcon, mdi::size24px as mdi};
 use embedded_layout::prelude::*;
 use embedded_text::{TextBox, alignment::HorizontalAlignment};
+use heapless::{String, format};
 use lcd_async::raw_framebuf::RawFrameBuf;
 use pinetime_bsp::touch::TouchGesture;
 use time::PrimitiveDateTime;
 use u8g2_fonts::U8g2TextStyle;
 
-use crate::{app_framework::prelude::*, apps::AppId};
+use crate::app_framework::{AppContext, EventResponse, SystemEvent, WatchApp};
+use crate::apps::AppId;
 
 const LG_DIGIT_HEIGHT: u32 = 120;
 const LG_DIGIT_WIDTH: u32 = 45;
@@ -220,8 +227,7 @@ async fn weekday(
     ctx: &mut AppContext,
     sm_text_style: U8g2TextStyle<Rgb565>,
 ) {
-    let mut string = String::<3>::new();
-    write!(string, "{:.3}", weekday).expect("String will always be valid");
+    let string: String<3> = format!("{:.3}", weekday).expect("String will always be valid");
     let date_text = TextBox::with_alignment(
         string.as_str(),
         Rectangle::new(Point::zero(), Size::new(50, 34)),
@@ -295,9 +301,7 @@ async fn hours_minutes(
     ctx: &mut AppContext,
     lg_digit_style: SevenSegmentStyle<Rgb565>,
 ) {
-    let mut string = String::<5>::new();
-    write!(
-        string,
+    let string: String<5> = format!(
         "{:02}:{:02}",
         to_12_hr(current_time.hour()),
         current_time.minute()
@@ -327,9 +331,7 @@ async fn date(
     ctx: &mut AppContext,
     sm_digit_style: SevenSegmentStyle<Rgb565>,
 ) {
-    let mut string = String::<11>::new();
-    write!(
-        string,
+    let string: String<11> = format!(
         "{:4}-{:02}-{:02}",
         current_time.year(),
         current_time.month() as u8,
@@ -352,8 +354,8 @@ async fn seconds(
     ctx: &mut AppContext,
     sm_digit_style: SevenSegmentStyle<Rgb565>,
 ) {
-    let mut string = String::<2>::new();
-    write!(string, "{:02}", seconds).expect("Seconds will always be valid for formatting");
+    let string: String<2> =
+        format!("{:02}", seconds).expect("Seconds will always be valid for formatting");
     let seconds_text = TextBox::new(
         string.as_str(),
         Rectangle::new(Point::zero(), SEC_SIZE),

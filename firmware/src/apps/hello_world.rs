@@ -1,8 +1,4 @@
 use crate::app_framework::prelude::*;
-use buoyant::view::prelude::*;
-use embedded_graphics::mono_font::ascii::FONT_10X20;
-use heapless::{String, format};
-use pinetime_bsp::touch::TouchGesture;
 
 pub struct HelloWorldApp {
     // Define any state that you want to hold here

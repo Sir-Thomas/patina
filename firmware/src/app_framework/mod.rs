@@ -10,14 +10,12 @@ pub use traits::WatchApp;
 #[allow(unused)] // TODO: Remove these allows
 pub mod prelude {
     pub use crate::app_framework::{AppContext, EventResponse, SystemEvent, WatchApp};
+    pub use buoyant::view::prelude::*;
     pub use core::fmt::Write as _;
     pub use embedded_graphics::mono_font::{MonoTextStyle, ascii::FONT_10X20};
-    pub use embedded_graphics::{
-        image::Image, pixelcolor::Rgb565, prelude::*, primitives::Rectangle,
-    };
-    pub use embedded_layout::prelude::*;
+    pub use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
     pub use embedded_text::TextBox;
-    pub use heapless::{String, Vec};
+    pub use heapless::{String, Vec, format};
     pub use pinetime_bsp::touch::TouchGesture;
 }
 

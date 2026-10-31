@@ -6,11 +6,11 @@ impl WatchApp for StopwatchApp {
     fn new() -> Self {
         StopwatchApp
     }
-    
+
     async fn on_start(&mut self, _ctx: &mut AppContext) {
         // Initialize app state
     }
-    
+
     async fn on_stop(&mut self, _ctx: &mut AppContext) {
         // Clean up app state
     }
@@ -21,11 +21,12 @@ impl WatchApp for StopwatchApp {
     }
 
     async fn render(&mut self, ctx: &mut AppContext) {
-        let bounds = Rectangle::new(Point::zero(), Size::new(240, 240));
-        let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-        let mut string = String::<32>::new();
-        write!(string, "Stopwatch App").expect("Name can be formatted");
-        let text = TextBox::new(string.as_str(), bounds, style);
-        ctx.draw(&text, Rgb565::BLACK).await;
+        let mut captures = ();
+        let screen = VStack::new((Text::new("Stopwatch App", &FONT_10X20),))
+            .with_alignment(HorizontalAlignment::Leading)
+            .foreground_color(Rgb565::WHITE)
+            .padding(Edges::All, 10);
+        let view = screen.as_drawable(Size::new(240, 240), Rgb565::BLACK, &mut captures);
+        ctx.draw_screen(&view).await;
     }
 }

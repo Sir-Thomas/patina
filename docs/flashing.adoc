@@ -27,7 +27,7 @@ fi
 
 === Create venv for MCUBoot Image Tool
 
-Copy imgtool.py and the imgtool folder from https://github.com/mcu-tools/mcuboot[MCUboot] to the scripts directory.
+Create a Python venv and install imgtool dependencies.
 
 ----
 python3 -m venv .venv

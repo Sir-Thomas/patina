@@ -7,6 +7,7 @@
 A `SystemEvent` is passed into the `on_event` function whenever the OS detects an event. This allows the app to handle the input and then return an `EventResponse`.
 ----
 pub enum SystemEvent {
+    Alarm,
     BluetoothConnected,
     BluetoothDisconnected,
     ButtonPress, // TODO: Deprecate. Button press never handled by app
@@ -16,6 +17,7 @@ pub enum SystemEvent {
 }
 ----
 
+* `Alarm` - Signals that the alarm should ring (handled by OS, never passed to apps)
 * `BluetoothConnected` - Signals that a device has connected over Bluetooth.
 * `BluetoothDisconnected` - Signals that the Bluetooth connection has been dropped.
 * `ButtonPress` - This event will be deprecated. Button presses will always be handled by the OS. Closing the current app if one is open, turning off the display if the clock app is active, or turning on the display if it is off.

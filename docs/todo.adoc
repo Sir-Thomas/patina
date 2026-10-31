@@ -1,0 +1,11 @@
+== Todo List
+
+* [ ] Complete switch to Buoyant
+* [ ] Pass signals around instead of using globals
+* [ ] Timer - Should I combine this with Alarm, or just make another task?
+* [ ] Create more apps
+* [ ] BLE Pairing
+* [ ] Notifications
+* [ ] HR Sensor
+* [ ] Tilt-to-wake
+* [ ] Improve battery life

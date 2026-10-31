@@ -7,7 +7,7 @@ use nrf_sdc::mpsl::Flash;
 use pinetime_bsp::vibrator::Vibrator;
 use pinetime_bsp::{Accelerometer, BrightnessLevel, PowerMode, ScreenOrientation};
 use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
-use time::PrimitiveDateTime;
+use time::PlainDateTime;
 
 use crate::app_framework::prelude::*;
 use crate::signals::{ADJUST_TIME, BATTERY, CHANGE_DISPLAY_STATE, CURRENT_TIME, FLIP_SCREEN};
@@ -19,7 +19,7 @@ pub struct AppContext {
     accelerometer: Accelerometer,
     backlight: BacklightController,
     bluetooth_connected: bool,
-    current_time_watcher: DynAnonReceiver<'static, PrimitiveDateTime>,
+    current_time_watcher: DynAnonReceiver<'static, PlainDateTime>,
     display: DisplayController,
     flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
     screen_on: bool,
@@ -98,7 +98,7 @@ impl AppContext {
     //     self.display.draw_view(view, background).await;
     // }
 
-    pub fn time(&mut self) -> PrimitiveDateTime {
+    pub fn time(&mut self) -> PlainDateTime {
         let current_time = self
             .current_time_watcher
             .try_get()
@@ -106,7 +106,7 @@ impl AppContext {
         current_time
     }
     #[allow(dead_code)] // TODO: Decide whether to keep this
-    pub fn set_time(&mut self, new_time: PrimitiveDateTime) {
+    pub fn set_time(&mut self, new_time: PlainDateTime) {
         ADJUST_TIME.signal(new_time);
     }
 

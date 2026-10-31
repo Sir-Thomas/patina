@@ -9,7 +9,7 @@ use embedded_icon::{
     },
 };
 use heapless::String;
-use time::PrimitiveDateTime;
+use time::PlainDateTime;
 use u8g2_fonts::{FontRenderer, fonts};
 
 use crate::app_framework::{AppContext, EventResponse, SystemEvent, WatchApp};
@@ -31,7 +31,7 @@ struct BatteryIcons {
 }
 
 pub struct BuoyantApp {
-    current_time: PrimitiveDateTime,
+    current_time: PlainDateTime,
     bluetooth_connected: bool,
     bluetooth_icons: BluetoothIcons,
     battery_level: u8,
@@ -42,7 +42,7 @@ pub struct BuoyantApp {
 impl WatchApp for BuoyantApp {
     fn new() -> Self {
         BuoyantApp {
-            current_time: PrimitiveDateTime::MIN,
+            current_time: PlainDateTime::MIN,
             bluetooth_connected: false,
             bluetooth_icons: BluetoothIcons {
                 connected: BluetoothConnect::new(Rgb565::GREEN),

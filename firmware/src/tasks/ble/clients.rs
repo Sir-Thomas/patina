@@ -55,7 +55,7 @@ pub async fn sync_time<'a>(
     }
 }
 
-pub fn parse_time(data: [u8; 10]) -> Option<time::PrimitiveDateTime> {
+pub fn parse_time(data: [u8; 10]) -> Option<time::PlainDateTime> {
     let year = u16::from_le_bytes([data[0], data[1]]);
     let month = data[2];
     let day = data[3];
@@ -70,7 +70,7 @@ pub fn parse_time(data: [u8; 10]) -> Option<time::PrimitiveDateTime> {
         let micros = secs_frac as u32 * 1000000 / 256;
         let time = time::Time::from_hms_micro(hour, minute, second, micros);
         if let (Ok(time), Ok(date)) = (time, date) {
-            let dt = time::PrimitiveDateTime::new(date, time);
+            let dt = time::PlainDateTime::new(date, time);
             return Some(dt);
         }
     }

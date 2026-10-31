@@ -1,6 +1,6 @@
 use defmt::debug;
 use embassy_time::{Instant, WithTimeout};
-use time::PrimitiveDateTime;
+use time::PlainDateTime;
 
 use crate::{
     app_framework::events::SystemEvent,
@@ -13,7 +13,7 @@ const SYSTICK_DURATION: embassy_time::Duration = embassy_time::Duration::from_mi
 pub async fn systick_task() {
     let sender = CURRENT_TIME.sender();
     let mut current_time;
-    let mut boot_time = PrimitiveDateTime::MIN;
+    let mut boot_time = PlainDateTime::MIN;
     let mut watchdog =
         unsafe { embassy_nrf::wdt::WatchdogHandle::steal::<embassy_nrf::peripherals::WDT>(0) };
 
@@ -38,7 +38,7 @@ pub async fn systick_task() {
     }
 }
 
-fn update_time(boot_time: PrimitiveDateTime) -> PrimitiveDateTime {
+fn update_time(boot_time: PlainDateTime) -> PlainDateTime {
     let elapsed = (Instant::now()).as_millis() as i64;
     let current_time = boot_time.saturating_add(time::Duration::milliseconds(elapsed));
     // For debugging - print the current time

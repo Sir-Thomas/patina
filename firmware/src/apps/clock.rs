@@ -12,7 +12,7 @@ use embedded_text::{TextBox, alignment::HorizontalAlignment};
 use heapless::{String, format};
 use lcd_async::raw_framebuf::RawFrameBuf;
 use pinetime_bsp::touch::TouchGesture;
-use time::PrimitiveDateTime;
+use time::PlainDateTime;
 use u8g2_fonts::U8g2TextStyle;
 
 use crate::app_framework::{AppContext, EventResponse, SystemEvent, WatchApp};
@@ -43,7 +43,7 @@ pub struct ClockApp {
     battery_level: u8,
     battery_charging: bool,
     bluetooth_connected: bool,
-    current_time: PrimitiveDateTime,
+    current_time: PlainDateTime,
     lg_digit_style: SevenSegmentStyle<Rgb565>,
     sm_digit_style: SevenSegmentStyle<Rgb565>,
     sm_text_style: U8g2TextStyle<Rgb565>,
@@ -76,7 +76,7 @@ impl WatchApp for ClockApp {
             battery_level: 0,
             battery_charging: false,
             bluetooth_connected: false,
-            current_time: PrimitiveDateTime::MIN,
+            current_time: PlainDateTime::MIN,
             lg_digit_style,
             sm_digit_style,
             sm_text_style,
@@ -296,7 +296,7 @@ async fn bluetooth_icon(connected: bool, display_area: &Rectangle, ctx: &mut App
 }
 
 async fn hours_minutes(
-    current_time: PrimitiveDateTime,
+    current_time: PlainDateTime,
     display_area: &Rectangle,
     ctx: &mut AppContext,
     lg_digit_style: SevenSegmentStyle<Rgb565>,
@@ -326,7 +326,7 @@ fn to_12_hr(hour: u8) -> u8 {
 }
 
 async fn date(
-    current_time: PrimitiveDateTime,
+    current_time: PlainDateTime,
     display_area: &Rectangle,
     ctx: &mut AppContext,
     sm_digit_style: SevenSegmentStyle<Rgb565>,

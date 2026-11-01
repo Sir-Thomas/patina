@@ -1213,6 +1213,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
+name = "hrs3300"
+version = "0.1.0"
+source = "git+https://github.com/Sir-Thomas/hrs3300-rs?rev=9b3086b757471702f77fcdf8e9e46bfac1598c28#9b3086b757471702f77fcdf8e9e46bfac1598c28"
+dependencies = [
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+]
+
+[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1695,6 +1704,7 @@ dependencies = [
  "embedded-graphics",
  "embedded-hal-async",
  "embedded-layout",
+ "hrs3300",
  "lcd-async",
  "nrf-sdc",
  "spi-memory-async",

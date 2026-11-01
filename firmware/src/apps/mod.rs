@@ -8,6 +8,7 @@ define_apps! {
     AppMenu => app_menu::AppMenuApp,
     Buoyant => buoyant::BuoyantApp,
     Clock => clock::ClockApp,
+    HeartRate => heart_rate::HeartRateApp,
     HelloWorld => hello_world::HelloWorldApp,
     Settings => settings::SettingsApp,
     Stopwatch => stopwatch::StopwatchApp,

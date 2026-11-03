@@ -4,9 +4,9 @@ use embassy_sync::mutex::Mutex;
 use embassy_sync::watch::DynAnonReceiver;
 use embassy_time::{Delay, Duration};
 use nrf_sdc::mpsl::Flash;
-use pinetime_bsp::backlight::BacklightController;
+use patina_hal::backlight::BrightnessLevel;
 use pinetime_bsp::vibrator::Vibrator;
-use pinetime_bsp::{Accelerometer, BrightnessLevel, PowerMode};
+use pinetime_bsp::{Accelerometer, PowerMode};
 use time::PlainDateTime;
 
 use crate::app_framework::prelude::*;
@@ -18,12 +18,13 @@ const VALID_BIT_VALUE: u32 = 1;
 #[derive(Clone, Debug)]
 pub enum Command {
     RotateScreen,
+    SetBrightness(BrightnessLevel),
 }
 
 pub struct AppContext {
     accelerometer: Accelerometer,
-    pub backlight: BacklightController,
-    bluetooth_connected: bool,
+    pub bluetooth_connected: bool,
+    pub brightness: BrightnessLevel,
     current_time_watcher: DynAnonReceiver<'static, PlainDateTime>,
     flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
     pub screen_on: bool,
@@ -34,15 +35,15 @@ pub struct AppContext {
 impl AppContext {
     pub fn new(
         accelerometer: Accelerometer,
-        backlight: BacklightController,
+        brightness: BrightnessLevel,
         flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
         vibrator: Vibrator,
     ) -> Self {
         let current_time_watcher = CURRENT_TIME.dyn_anon_receiver();
         Self {
             accelerometer,
-            backlight,
             bluetooth_connected: false,
+            brightness,
             current_time_watcher,
             flash,
             screen_on: true,
@@ -102,12 +103,10 @@ impl AppContext {
             .expect("There will always be a valid battery value")
     }
 
-    pub fn brightness(&self) -> BrightnessLevel {
-        self.backlight.brightness()
-    }
-
     pub fn set_brightness(&mut self, brightness: BrightnessLevel) {
-        self.backlight.set_brightness(brightness);
+        self.commands
+            .push(Command::SetBrightness(brightness))
+            .unwrap();
     }
 
     pub fn bluetooth_connected(&self) -> bool {

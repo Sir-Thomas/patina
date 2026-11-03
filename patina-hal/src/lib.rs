@@ -1,5 +1,4 @@
 #![no_std]
-#![no_main]
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
@@ -12,4 +11,5 @@ pub enum ScreenOrientation {
     Flipped,
 }
 
+pub mod backlight;
 pub mod display;

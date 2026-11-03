@@ -9,8 +9,8 @@ use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
 use heapless::Vec;
 use nrf_sdc::mpsl::Flash;
-use patina_hal::{ScreenOrientation, display::Display};
-use pinetime_bsp::{Accelerometer, PineTime, backlight::BacklightController, vibrator::Vibrator};
+use patina_hal::{ScreenOrientation, backlight::Backlight, display::Display};
+use pinetime_bsp::{Accelerometer, PineTime, vibrator::Vibrator};
 
 use crate::signals::{CHANGE_DISPLAY_STATE, EVENT_QUEUE, FLIP_SCREEN, REFRESH_TIMEOUT};
 
@@ -52,25 +52,28 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     }
 }
 
-struct AppManager<D> {
+struct AppManager<B, D> {
     app_id: AppId,
+    backlight: B,
     context: AppContext,
     current_app: AppInstance,
     display: D,
 }
 
-impl<D: Display> AppManager<D> {
+impl<B: Backlight, D: Display> AppManager<B, D> {
     fn new(
         accelerometer: Accelerometer,
-        backlight: BacklightController,
+        backlight: B,
         display: D,
         flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
         vibrator: Vibrator,
     ) -> Self {
         let app_id = AppId::Clock;
+        let brightness = backlight.brightness();
         Self {
             app_id,
-            context: AppContext::new(accelerometer, backlight, flash, vibrator),
+            backlight,
+            context: AppContext::new(accelerometer, brightness, flash, vibrator),
             current_app: AppInstance::new(app_id),
             display,
         }
@@ -141,6 +144,8 @@ impl<D: Display> AppManager<D> {
 
         let response = self.current_app.on_event(event, &mut self.context).await;
 
+        self.run_commands().await;
+
         match response {
             EventResponse::CloseApp => {
                 self.close_current_app().await;
@@ -153,21 +158,24 @@ impl<D: Display> AppManager<D> {
             }
             EventResponse::Ignore => {}
         }
+    }
 
+    async fn run_commands(&mut self) {
         for command in self.context.commands.clone() {
-            self.run_command(command).await;
+            match command {
+                Command::RotateScreen => self.rotate_screen().await,
+                Command::SetBrightness(level) => {
+                    self.backlight.set_brightness(level);
+                    self.context.brightness = level;
+                }
+            }
         }
         self.context.commands = Vec::new();
     }
 
-    async fn run_command(&mut self, command: Command) {
-        match command {
-            Command::RotateScreen => self.rotate_screen().await,
-        }
-    }
-
     async fn switch_to(&mut self, new_id: AppId) {
         self.current_app.on_stop(&mut self.context).await;
+        self.run_commands().await;
         self.current_app = AppInstance::new(new_id);
         self.app_id = new_id;
         self.current_app.on_start(&mut self.context).await;
@@ -188,7 +196,7 @@ impl<D: Display> AppManager<D> {
         info!("[Context] Turning on display");
         CHANGE_DISPLAY_STATE.signal(true);
         self.context.screen_on = true;
-        self.context.backlight.enable();
+        self.backlight.enable();
         self.display.wake().await;
     }
 
@@ -196,7 +204,7 @@ impl<D: Display> AppManager<D> {
         info!("[Context] Turning off display");
         CHANGE_DISPLAY_STATE.signal(false);
         self.context.screen_on = false;
-        self.context.backlight.disable();
+        self.backlight.disable();
         self.clear_display().await;
         self.display.sleep().await;
     }
@@ -205,22 +213,6 @@ impl<D: Display> AppManager<D> {
         info!("[Context] Clearing display");
         self.display.fill(Rgb565::BLACK).await;
     }
-
-    /*
-    // TODO: Delete these if I still don't need them
-    pub async fn fill_display(&mut self, color: Rgb565) {
-        info!("[Context] Filling display with color");
-        self.display.fill(color).await;
-    }
-
-    pub async fn draw<T: Drawable<Color = Rgb565> + Dimensions>(
-        &mut self,
-        drawable: &T,
-        background: Rgb565,
-    ) {
-        self.display.draw(drawable, background).await;
-    }
-    */
 
     pub async fn draw_screen(&mut self) {
         self.current_app

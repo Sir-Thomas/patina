@@ -17,7 +17,6 @@ use patina_hal::{ScreenOrientation, display::Display as _};
 use static_cell::StaticCell;
 
 use crate::backlight::BacklightController;
-pub use crate::backlight::BrightnessLevel;
 use crate::battery::BatteryController;
 use crate::ble::{BleController, build_mpsl, build_sdc};
 use crate::button::Button;

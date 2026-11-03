@@ -1,5 +1,10 @@
 //! Backlight controller
-use embassy_nrf::{Peri, gpio::{Level, Output, OutputDrive}, peripherals};
+use embassy_nrf::{
+    Peri,
+    gpio::{Level, Output, OutputDrive},
+    peripherals,
+};
+use patina_hal::backlight::{Backlight, BrightnessLevel};
 
 /// Backlight controller
 pub struct BacklightController {
@@ -23,14 +28,16 @@ impl BacklightController {
             brightness_level: BrightnessLevel::default(),
         }
     }
+}
 
+impl Backlight for BacklightController {
     /// Get the current brightness level
-    pub fn brightness(&self) -> BrightnessLevel {
+    fn brightness(&self) -> BrightnessLevel {
         self.brightness_level
     }
 
     /// Set the brightness level
-    pub fn set_brightness(&mut self, level: BrightnessLevel) {
+    fn set_brightness(&mut self, level: BrightnessLevel) {
         self.low.set_high();
         self.medium.set_high();
         self.high.set_high();
@@ -43,26 +50,14 @@ impl BacklightController {
     }
 
     /// Enable the backlight at the current brightness level
-    pub fn enable(&mut self) {
+    fn enable(&mut self) {
         self.set_brightness(self.brightness_level);
     }
 
     /// Disable the backlight
-    pub fn disable(&mut self) {
+    fn disable(&mut self) {
         self.low.set_high();
         self.medium.set_high();
         self.high.set_high();
     }
-}
-
-/// Brightness levels for the backlight
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
-pub enum BrightnessLevel {
-    /// Low brightness
-    #[default]
-    Low,
-    /// Medium brightness
-    Medium,
-    /// High brightness
-    High,
 }

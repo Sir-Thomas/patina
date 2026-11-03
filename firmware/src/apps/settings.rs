@@ -8,11 +8,8 @@ use embedded_icon::{
     },
 };
 use heapless::{String, format};
-use patina_hal::display::Display;
-use pinetime_bsp::{
-    BrightnessLevel,
-    touch::{Point, TouchGesture},
-};
+use patina_hal::{backlight::BrightnessLevel, display::Display};
+use pinetime_bsp::touch::{Point, TouchGesture};
 
 struct BrightnessIcons {
     low: Icon<Rgb565, Brightness5>,
@@ -53,7 +50,7 @@ impl WatchApp for SettingsApp {
     }
 
     async fn on_start(&mut self, ctx: &mut AppContext) {
-        self.settings.load(ctx);
+        self.settings.load(ctx, true);
     }
 
     async fn on_stop(&mut self, ctx: &mut AppContext) {
@@ -80,18 +77,23 @@ impl WatchApp for SettingsApp {
                         EventResponse::Rerender
                     }
                 } else if self.screen == SettingsScreen::Flashlight {
+                    ctx.set_brightness(self.settings.brightness);
                     self.screen = SettingsScreen::Main;
                     EventResponse::Rerender
                 } else {
                     EventResponse::Ignore
                 }
             }
+            SystemEvent::Tick => {
+                self.settings
+                    .load(ctx, self.screen != SettingsScreen::Flashlight);
+                EventResponse::Ignore
+            }
             _ => EventResponse::Ignore,
         }
     }
 
     async fn render<D: Display>(&mut self, ctx: &mut AppContext, display: &mut D) {
-        ctx.set_brightness(self.settings.brightness);
         let mut captures = ();
         let screen = match_view!(self.screen, {
             SettingsScreen::Main => self.main_screen(),
@@ -99,7 +101,7 @@ impl WatchApp for SettingsApp {
                 ctx.set_brightness(BrightnessLevel::High);
                 self.flashlight_screen()
             },
-            SettingsScreen::Firmware => self.firmware_screen(ctx.firmware_is_validated(), ctx.battery().2, ctx.battery().0),
+            SettingsScreen::Firmware => self.firmware_screen(self.settings.firmware_is_validated, self.settings.battery_millivolts, self.settings.battery_percent),
         });
         let view = screen.as_drawable(Size::new(240, 240), Rgb565::BLACK, &mut captures);
         display.draw_screen(&view).await;
@@ -119,7 +121,9 @@ impl SettingsApp {
                 BrightnessLevel::Medium => BrightnessLevel::High,
                 BrightnessLevel::High => BrightnessLevel::Low,
             };
+            ctx.set_brightness(self.settings.brightness);
         } else if location.x > 120 && location.y <= 120 {
+            ctx.set_brightness(BrightnessLevel::High);
             self.screen = SettingsScreen::Flashlight;
         } else if location.x > 120 && location.y > 120 {
             self.screen = SettingsScreen::Firmware;
@@ -223,11 +227,19 @@ impl SettingsApp {
 
 #[derive(Default)]
 struct Settings {
+    battery_millivolts: u32,
+    battery_percent: u8,
     brightness: BrightnessLevel,
+    firmware_is_validated: bool,
 }
 
 impl Settings {
-    fn load(&mut self, ctx: &mut AppContext) {
-        self.brightness = ctx.brightness();
+    fn load(&mut self, ctx: &mut AppContext, set_brightness: bool) {
+        self.battery_millivolts = ctx.battery().2;
+        self.battery_percent = ctx.battery().0;
+        self.firmware_is_validated = ctx.firmware_is_validated();
+        if set_brightness {
+            self.brightness = ctx.brightness;
+        }
     }
 }

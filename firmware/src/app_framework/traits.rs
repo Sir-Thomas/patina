@@ -1,4 +1,5 @@
 use crate::app_framework::{AppContext, EventResponse, events::SystemEvent};
+use patina_hal::display::Display;
 
 pub trait WatchApp {
     fn new() -> Self
@@ -11,5 +12,5 @@ pub trait WatchApp {
 
     async fn on_event(&mut self, event: SystemEvent, ctx: &mut AppContext) -> EventResponse;
 
-    async fn render(&mut self, ctx: &mut AppContext);
+    async fn render<D: Display>(&mut self, ctx: &mut AppContext, display: &mut D);
 }

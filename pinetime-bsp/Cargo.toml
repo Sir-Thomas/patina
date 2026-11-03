@@ -16,6 +16,7 @@ embedded-hal-async = { workspace = true }
 embedded-layout = { workspace = true }
 lcd-async = { workspace = true }
 nrf-sdc = { workspace = true }
+patina-hal = { path = "../patina-hal" }
 spi-memory-async = { workspace = true }
 static_cell = { workspace = true }
 

@@ -11,6 +11,7 @@ use embedded_layout::prelude::*;
 use embedded_text::{TextBox, alignment::HorizontalAlignment};
 use heapless::{String, format};
 use lcd_async::raw_framebuf::RawFrameBuf;
+use patina_hal::display::Display;
 use pinetime_bsp::touch::TouchGesture;
 use time::PlainDateTime;
 use u8g2_fonts::U8g2TextStyle;
@@ -90,7 +91,6 @@ impl WatchApp for ClockApp {
 
     async fn on_start(&mut self, ctx: &mut AppContext) {
         info!("[Clock App] Starting Clock App");
-        ctx.clear_display().await;
         self.bluetooth_connected = ctx.bluetooth_connected();
         (self.battery_level, self.battery_charging, _) = ctx.battery();
         self.update_header = true;
@@ -167,32 +167,32 @@ impl WatchApp for ClockApp {
         }
     }
 
-    async fn render(&mut self, ctx: &mut AppContext) {
+    async fn render<D: Display>(&mut self, _ctx: &mut AppContext, display: &mut D) {
         debug!("[Clock App] Rendering Clock");
 
         if self.update_header {
             battery_icon(
                 self.battery_level,
                 self.battery_charging,
+                display,
                 &self.display_area,
-                ctx,
             )
             .await;
-            bluetooth_icon(self.bluetooth_connected, &self.display_area, ctx).await;
+            bluetooth_icon(self.bluetooth_connected, display, &self.display_area).await;
             self.update_header = false;
         }
         if self.update_date {
             weekday(
                 self.current_time.weekday(),
+                display,
                 &self.display_area,
-                ctx,
                 self.sm_text_style.clone(),
             )
             .await;
             date(
                 self.current_time,
+                display,
                 &self.display_area,
-                ctx,
                 self.sm_digit_style,
             )
             .await;
@@ -201,8 +201,8 @@ impl WatchApp for ClockApp {
         if self.update_hours_minutes {
             hours_minutes(
                 self.current_time,
+                display,
                 &self.display_area,
-                ctx,
                 self.lg_digit_style,
             )
             .await;
@@ -211,8 +211,8 @@ impl WatchApp for ClockApp {
         if self.update_seconds {
             seconds(
                 self.current_time.second(),
+                display,
                 &self.display_area,
-                ctx,
                 self.sm_digit_style,
             )
             .await;
@@ -221,10 +221,10 @@ impl WatchApp for ClockApp {
     }
 }
 
-async fn weekday(
+async fn weekday<D: Display>(
     weekday: time::Weekday,
+    display: &mut D,
     display_area: &Rectangle,
-    ctx: &mut AppContext,
     sm_text_style: U8g2TextStyle<Rgb565>,
 ) {
     let string: String<3> = format!("{:.3}", weekday).expect("String will always be valid");
@@ -235,10 +235,15 @@ async fn weekday(
         HorizontalAlignment::Left,
     );
     let positioned_date = date_text.align_to(display_area, horizontal::Left, vertical::Top);
-    ctx.draw(&positioned_date, Rgb565::BLACK).await;
+    display.draw(&positioned_date, Rgb565::BLACK).await;
 }
 
-async fn battery_icon(level: u8, charging: bool, display_area: &Rectangle, ctx: &mut AppContext) {
+async fn battery_icon<D: Display>(
+    level: u8,
+    charging: bool,
+    display: &mut D,
+    display_area: &Rectangle,
+) {
     let mut buffer: [u8; 24 * 24 * 2] = [0; 24 * 24 * 2];
     let mut fbuf = RawFrameBuf::new(buffer.as_mut_slice(), 24, 24);
     fbuf.clear(Rgb565::BLACK);
@@ -272,10 +277,10 @@ async fn battery_icon(level: u8, charging: bool, display_area: &Rectangle, ctx: 
     let image = ImageRawBE::<Rgb565>::new(fbuf.as_bytes(), 24);
     let image =
         Image::new(&image, Point::zero()).align_to(display_area, horizontal::Right, vertical::Top);
-    ctx.draw(&image, Rgb565::BLACK).await;
+    display.draw(&image, Rgb565::BLACK).await;
 }
 
-async fn bluetooth_icon(connected: bool, display_area: &Rectangle, ctx: &mut AppContext) {
+async fn bluetooth_icon<D: Display>(connected: bool, display: &mut D, display_area: &Rectangle) {
     let mut buffer: [u8; 24 * 24 * 2] = [0; 24 * 24 * 2];
     let mut fbuf = RawFrameBuf::new(buffer.as_mut_slice(), 24, 24);
     fbuf.clear(Rgb565::BLACK);
@@ -292,13 +297,13 @@ async fn bluetooth_icon(connected: bool, display_area: &Rectangle, ctx: &mut App
     let image = Image::new(&image, Point::zero())
         .align_to(display_area, horizontal::Right, vertical::Top)
         .translate(Point::new(-24, 0));
-    ctx.draw(&image, Rgb565::BLACK).await;
+    display.draw(&image, Rgb565::BLACK).await;
 }
 
-async fn hours_minutes(
+async fn hours_minutes<D: Display>(
     current_time: PlainDateTime,
+    display: &mut D,
     display_area: &Rectangle,
-    ctx: &mut AppContext,
     lg_digit_style: SevenSegmentStyle<Rgb565>,
 ) {
     let string: String<5> = format!(
@@ -315,7 +320,7 @@ async fn hours_minutes(
     );
     let positioned_hours =
         hours_minutes_text.align_to(display_area, horizontal::Center, vertical::Center);
-    ctx.draw(&positioned_hours, Rgb565::BLACK).await;
+    display.draw(&positioned_hours, Rgb565::BLACK).await;
 }
 
 fn to_12_hr(hour: u8) -> u8 {
@@ -325,10 +330,10 @@ fn to_12_hr(hour: u8) -> u8 {
     }
 }
 
-async fn date(
+async fn date<D: Display>(
     current_time: PlainDateTime,
+    display: &mut D,
     display_area: &Rectangle,
-    ctx: &mut AppContext,
     sm_digit_style: SevenSegmentStyle<Rgb565>,
 ) {
     let string: String<11> = format!(
@@ -345,13 +350,13 @@ async fn date(
         HorizontalAlignment::Left,
     );
     let positioned_date = date_text.align_to(display_area, horizontal::Left, vertical::Bottom);
-    ctx.draw(&positioned_date, Rgb565::BLACK).await;
+    display.draw(&positioned_date, Rgb565::BLACK).await;
 }
 
-async fn seconds(
+async fn seconds<D: Display>(
     seconds: u8,
+    display: &mut D,
     display_area: &Rectangle,
-    ctx: &mut AppContext,
     sm_digit_style: SevenSegmentStyle<Rgb565>,
 ) {
     let string: String<2> =
@@ -363,5 +368,5 @@ async fn seconds(
     );
     let positioned_seconds =
         seconds_text.align_to(display_area, horizontal::Right, vertical::Bottom);
-    ctx.draw(&positioned_seconds, Rgb565::BLACK).await;
+    display.draw(&positioned_seconds, Rgb565::BLACK).await;
 }

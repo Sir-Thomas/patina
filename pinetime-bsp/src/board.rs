@@ -13,6 +13,7 @@ use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::mutex::Mutex;
 use embassy_time::Duration;
 use nrf_sdc::mpsl::{self, MultiprotocolServiceLayer};
+use patina_hal::{ScreenOrientation, display::Display as _};
 use static_cell::StaticCell;
 
 use crate::backlight::BacklightController;
@@ -31,15 +32,6 @@ static I2C_BUFFER: StaticCell<[u8; 256]> = StaticCell::new();
 static I2C_BUS: StaticCell<Mutex<NoopRawMutex, Twim<'static>>> = StaticCell::new();
 static SPI_BUS: StaticCell<Mutex<NoopRawMutex, Spim<'static>>> = StaticCell::new();
 static FLASH: StaticCell<Mutex<NoopRawMutex, mpsl::Flash<'static>>> = StaticCell::new();
-
-/// Screen Orientation
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ScreenOrientation {
-    /// Default Screen Orientation
-    Normal,
-    /// Flipped Screen Orientation
-    Flipped,
-}
 
 bind_interrupts!(
     pub(crate) struct Irqs {
@@ -67,7 +59,7 @@ pub struct PineTime {
     pub bluetooth: BleController,
     /// Button
     pub button: Button,
-    /// Display TODO: Improve this later
+    /// Display
     pub display: DisplayController,
     /// MPSL Flash
     pub mpsl_flash: &'static Mutex<NoopRawMutex, mpsl::Flash<'static>>,

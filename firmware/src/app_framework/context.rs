@@ -4,33 +4,37 @@ use embassy_sync::mutex::Mutex;
 use embassy_sync::watch::DynAnonReceiver;
 use embassy_time::{Delay, Duration};
 use nrf_sdc::mpsl::Flash;
+use pinetime_bsp::backlight::BacklightController;
 use pinetime_bsp::vibrator::Vibrator;
-use pinetime_bsp::{Accelerometer, BrightnessLevel, PowerMode, ScreenOrientation};
-use pinetime_bsp::{backlight::BacklightController, display::DisplayController};
+use pinetime_bsp::{Accelerometer, BrightnessLevel, PowerMode};
 use time::PlainDateTime;
 
 use crate::app_framework::prelude::*;
-use crate::signals::{ADJUST_TIME, BATTERY, CHANGE_DISPLAY_STATE, CURRENT_TIME, FLIP_SCREEN};
+use crate::signals::{ADJUST_TIME, BATTERY, CURRENT_TIME};
 
 const VALID_BIT_ADDRESS: u32 = 0x7BFE8;
 const VALID_BIT_VALUE: u32 = 1;
 
+#[derive(Clone, Debug)]
+pub enum Command {
+    RotateScreen,
+}
+
 pub struct AppContext {
     accelerometer: Accelerometer,
-    backlight: BacklightController,
+    pub backlight: BacklightController,
     bluetooth_connected: bool,
     current_time_watcher: DynAnonReceiver<'static, PlainDateTime>,
-    display: DisplayController,
     flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
-    screen_on: bool,
+    pub screen_on: bool,
     vibrator: Vibrator,
+    pub commands: Vec<Command, 8>,
 }
 
 impl AppContext {
     pub fn new(
         accelerometer: Accelerometer,
         backlight: BacklightController,
-        display: DisplayController,
         flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
         vibrator: Vibrator,
     ) -> Self {
@@ -40,63 +44,16 @@ impl AppContext {
             backlight,
             bluetooth_connected: false,
             current_time_watcher,
-            display,
             flash,
             screen_on: true,
             vibrator,
+            commands: Vec::new(),
         }
     }
 
     pub fn display_is_off(&self) -> bool {
         !self.screen_on
     }
-
-    pub async fn turn_on_display(&mut self) {
-        info!("[Context] Turning on display");
-        CHANGE_DISPLAY_STATE.signal(true);
-        self.screen_on = true;
-        self.backlight.enable();
-        self.display.wake().await;
-    }
-
-    pub async fn turn_off_display(&mut self) {
-        info!("[Context] Turning off display");
-        CHANGE_DISPLAY_STATE.signal(false);
-        self.screen_on = false;
-        self.backlight.disable();
-        self.clear_display().await;
-        self.display.sleep().await;
-    }
-
-    pub async fn clear_display(&mut self) {
-        info!("[Context] Clearing display");
-        self.display.clear(Rgb565::BLACK).await;
-    }
-
-    pub async fn fill_display(&mut self, color: Rgb565) {
-        info!("[Context] Filling display with color");
-        self.display.clear(color).await;
-    }
-
-    pub async fn draw<T: Drawable<Color = Rgb565> + Dimensions>(
-        &mut self,
-        drawable: &T,
-        background: Rgb565,
-    ) {
-        self.display.draw(drawable, background).await;
-    }
-
-    pub async fn draw_screen(&mut self, drawable: &impl Drawable<Color = Rgb565>) {
-        self.display.draw_screen(drawable).await;
-    }
-
-    // pub async fn draw_view<T: Drawable<Color = Rgb565> + View>(
-    //     &mut self,
-    //     view: &T,
-    //     background: Rgb565
-    // ) {
-    //     self.display.draw_view(view, background).await;
-    // }
 
     pub fn time(&mut self) -> PlainDateTime {
         let current_time = self
@@ -157,6 +114,10 @@ impl AppContext {
         self.bluetooth_connected
     }
 
+    pub fn rotate_screen(&mut self) {
+        self.commands.push(Command::RotateScreen).unwrap();
+    }
+
     pub fn set_bluetooth_connected(&mut self, connected: bool) {
         self.bluetooth_connected = connected;
     }
@@ -183,23 +144,6 @@ impl AppContext {
             }
         } else {
             info!("Firmware already validated");
-        }
-    }
-
-    pub async fn rotate_screen(&mut self) {
-        info!("[Context] Flipping screen");
-        FLIP_SCREEN.signal(());
-        match self.display.orientation() {
-            ScreenOrientation::Normal => {
-                self.display
-                    .set_orientation(ScreenOrientation::Flipped)
-                    .await
-            }
-            ScreenOrientation::Flipped => {
-                self.display
-                    .set_orientation(ScreenOrientation::Normal)
-                    .await
-            }
         }
     }
 }

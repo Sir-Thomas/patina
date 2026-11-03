@@ -9,6 +9,7 @@ use embedded_icon::{
     },
 };
 use heapless::String;
+use patina_hal::display::Display;
 use time::PlainDateTime;
 use u8g2_fonts::{FontRenderer, fonts};
 
@@ -99,11 +100,11 @@ impl WatchApp for BuoyantApp {
         }
     }
 
-    async fn render(&mut self, ctx: &mut AppContext) {
+    async fn render<D: Display>(&mut self, _ctx: &mut AppContext, display: &mut D) {
         let mut captures = ();
         let clock = self.clock();
         let view = clock.as_drawable(Size::new(240, 240), Rgb565::WHITE, &mut captures);
-        ctx.draw_screen(&view).await;
+        display.draw_screen(&view).await;
     }
 }
 

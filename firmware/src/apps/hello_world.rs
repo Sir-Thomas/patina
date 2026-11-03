@@ -41,7 +41,7 @@ impl WatchApp for HelloWorldApp {
         }
     }
 
-    async fn render(&mut self, ctx: &mut AppContext) {
+    async fn render<D: Display>(&mut self, _ctx: &mut AppContext, display: &mut D) {
         // This is just something that Buoyant needs
         let mut captures = ();
         // We can put our count variable into a string to display
@@ -65,6 +65,6 @@ impl WatchApp for HelloWorldApp {
         // variable we made earlier
         let view = screen.as_drawable(Size::new(240, 240), Rgb565::BLACK, &mut captures);
         // Finally, we can tell the context to draw this to the display
-        ctx.draw_screen(&view).await;
+        display.draw_screen(&view).await;
     }
 }

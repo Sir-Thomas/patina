@@ -11,8 +11,7 @@ use embassy_nrf::{
 };
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_time::Delay;
-
-use crate::ScreenOrientation;
+use patina_hal::ScreenOrientation;
 
 /// Touch Controller
 pub struct TouchController {

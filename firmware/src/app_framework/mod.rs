@@ -16,6 +16,7 @@ pub mod prelude {
     pub use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
     pub use embedded_text::TextBox;
     pub use heapless::{String, Vec, format};
+    pub use patina_hal::display::Display;
     pub use pinetime_bsp::touch::TouchGesture;
 }
 
@@ -71,9 +72,9 @@ macro_rules! define_apps {
                 }
             }
 
-            pub async fn render(&mut self, ctx: &mut AppContext) {
+            pub async fn render<D: Display>(&mut self, ctx: &mut AppContext, display: &mut D) {
                 match self {
-                    $(AppInstance::$id(app) => app.render(ctx).await,)*
+                    $(AppInstance::$id(app) => app.render(ctx, display).await,)*
                 }
             }
         }

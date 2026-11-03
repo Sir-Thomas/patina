@@ -1606,12 +1606,20 @@ dependencies = [
  "nrf-dfu-target",
  "nrf-sdc",
  "panic-probe",
+ "patina-hal",
  "pinetime-bsp",
  "spi-memory-async",
  "static_cell",
  "time",
  "trouble-host",
  "u8g2-fonts",
+]
+
+[[package]]
+name = "patina-hal"
+version = "0.1.0"
+dependencies = [
+ "embedded-graphics",
 ]
 
 [[package]]
@@ -1697,6 +1705,7 @@ dependencies = [
  "embedded-layout",
  "lcd-async",
  "nrf-sdc",
+ "patina-hal",
  "spi-memory-async",
  "static_cell",
 ]

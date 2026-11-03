@@ -1619,6 +1619,7 @@ dependencies = [
 name = "patina-hal"
 version = "0.1.0"
 dependencies = [
+ "embassy-time",
  "embedded-graphics",
 ]
 

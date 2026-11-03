@@ -13,3 +13,4 @@ pub enum ScreenOrientation {
 
 pub mod backlight;
 pub mod display;
+pub mod vibrator;

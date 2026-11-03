@@ -4,8 +4,7 @@ use embassy_sync::mutex::Mutex;
 use embassy_sync::watch::DynAnonReceiver;
 use embassy_time::{Delay, Duration};
 use nrf_sdc::mpsl::Flash;
-use patina_hal::backlight::BrightnessLevel;
-use pinetime_bsp::vibrator::Vibrator;
+use patina_hal::{backlight::BrightnessLevel, vibrator::Vibrator};
 use pinetime_bsp::{Accelerometer, PowerMode};
 use time::PlainDateTime;
 
@@ -19,6 +18,8 @@ const VALID_BIT_VALUE: u32 = 1;
 pub enum Command {
     RotateScreen,
     SetBrightness(BrightnessLevel),
+    VibrationPattern(Duration, Duration, u8),
+    VibrationShort,
 }
 
 pub struct AppContext {
@@ -28,7 +29,6 @@ pub struct AppContext {
     current_time_watcher: DynAnonReceiver<'static, PlainDateTime>,
     flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
     pub screen_on: bool,
-    vibrator: Vibrator,
     pub commands: Vec<Command, 8>,
 }
 
@@ -37,7 +37,6 @@ impl AppContext {
         accelerometer: Accelerometer,
         brightness: BrightnessLevel,
         flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
-        vibrator: Vibrator,
     ) -> Self {
         let current_time_watcher = CURRENT_TIME.dyn_anon_receiver();
         Self {
@@ -47,7 +46,6 @@ impl AppContext {
             current_time_watcher,
             flash,
             screen_on: true,
-            vibrator,
             commands: Vec::new(),
         }
     }
@@ -66,14 +64,6 @@ impl AppContext {
     #[allow(dead_code)] // TODO: Decide whether to keep this
     pub fn set_time(&mut self, new_time: PlainDateTime) {
         ADJUST_TIME.signal(new_time);
-    }
-
-    pub async fn short_vibration(&mut self) {
-        self.vibrator.pulse(Duration::from_millis(15)).await;
-    }
-
-    pub async fn vibration_pattern(&mut self, on: Duration, off: Duration, repetitions: u8) {
-        self.vibrator.pattern(on, off, repetitions).await;
     }
 
     pub async fn acceleration(&mut self) -> (i16, i16, i16) {
@@ -144,5 +134,15 @@ impl AppContext {
         } else {
             info!("Firmware already validated");
         }
+    }
+
+    pub fn vibration_pattern(&mut self, on: Duration, off: Duration, repetitions: u8) {
+        self.commands
+            .push(Command::VibrationPattern(on, off, repetitions))
+            .unwrap();
+    }
+
+    pub fn vibration_short(&mut self) {
+        self.commands.push(Command::VibrationShort).unwrap();
     }
 }

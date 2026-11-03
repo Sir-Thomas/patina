@@ -23,7 +23,7 @@ use crate::button::Button;
 use crate::display::DisplayController;
 use crate::flash::FlashController;
 use crate::touch::TouchController;
-use crate::vibrator::Vibrator;
+use crate::vibrator::VibratorController;
 
 pub type Accelerometer = BMA425<I2cDevice<'static, NoopRawMutex, Twim<'static>>, Input<'static>>;
 
@@ -67,7 +67,7 @@ pub struct PineTime {
     /// Touch Screen
     pub touchscreen: TouchController,
     /// Vibrator
-    pub vibrator: Vibrator,
+    pub vibrator: VibratorController,
     screen_orientation: ScreenOrientation,
 }
 
@@ -130,7 +130,7 @@ impl PineTime {
                 ScreenOrientation::Normal,
             )
             .await,
-            vibrator: Vibrator::new(p.P0_16),
+            vibrator: VibratorController::new(p.P0_16),
             screen_orientation: ScreenOrientation::Normal,
         }
     }

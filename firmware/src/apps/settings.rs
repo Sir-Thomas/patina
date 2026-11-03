@@ -115,7 +115,7 @@ impl SettingsApp {
         ctx: &mut AppContext,
     ) -> EventResponse {
         if location.x <= 120 && location.y <= 120 {
-            ctx.short_vibration().await;
+            ctx.vibration_short();
             self.settings.brightness = match self.settings.brightness {
                 BrightnessLevel::Low => BrightnessLevel::Medium,
                 BrightnessLevel::Medium => BrightnessLevel::High,

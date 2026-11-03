@@ -14,8 +14,7 @@ impl WatchApp for AlarmRing {
     }
 
     async fn on_start(&mut self, ctx: &mut AppContext) {
-        ctx.vibration_pattern(Duration::from_millis(500), Duration::from_millis(500), 5)
-            .await;
+        ctx.vibration_pattern(Duration::from_millis(500), Duration::from_millis(500), 5);
     }
 
     async fn on_stop(&mut self, _ctx: &mut AppContext) {}

@@ -6,11 +6,12 @@ use crate::{
 use defmt::{debug, info};
 use embassy_executor::Spawner;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
+use embassy_time::Duration;
 use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
 use heapless::Vec;
 use nrf_sdc::mpsl::Flash;
-use patina_hal::{ScreenOrientation, backlight::Backlight, display::Display};
-use pinetime_bsp::{Accelerometer, PineTime, vibrator::Vibrator};
+use patina_hal::{ScreenOrientation, backlight::Backlight, display::Display, vibrator::Vibrator};
+use pinetime_bsp::{Accelerometer, PineTime};
 
 use crate::signals::{CHANGE_DISPLAY_STATE, EVENT_QUEUE, FLIP_SCREEN, REFRESH_TIMEOUT};
 
@@ -52,30 +53,32 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     }
 }
 
-struct AppManager<B, D> {
+struct AppManager<B, D, V> {
     app_id: AppId,
     backlight: B,
     context: AppContext,
     current_app: AppInstance,
     display: D,
+    vibrator: V,
 }
 
-impl<B: Backlight, D: Display> AppManager<B, D> {
+impl<B: Backlight, D: Display, V: Vibrator> AppManager<B, D, V> {
     fn new(
         accelerometer: Accelerometer,
         backlight: B,
         display: D,
         flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
-        vibrator: Vibrator,
+        vibrator: V,
     ) -> Self {
         let app_id = AppId::Clock;
         let brightness = backlight.brightness();
         Self {
             app_id,
             backlight,
-            context: AppContext::new(accelerometer, brightness, flash, vibrator),
+            context: AppContext::new(accelerometer, brightness, flash),
             current_app: AppInstance::new(app_id),
             display,
+            vibrator,
         }
     }
 
@@ -168,9 +171,21 @@ impl<B: Backlight, D: Display> AppManager<B, D> {
                     self.backlight.set_brightness(level);
                     self.context.brightness = level;
                 }
+                Command::VibrationPattern(on, off, repetitions) => {
+                    self.vibration_pattern(on, off, repetitions).await
+                }
+                Command::VibrationShort => self.short_vibration().await,
             }
         }
         self.context.commands = Vec::new();
+    }
+
+    pub async fn short_vibration(&mut self) {
+        self.vibrator.pulse(Duration::from_millis(15)).await;
+    }
+
+    pub async fn vibration_pattern(&mut self, on: Duration, off: Duration, repetitions: u8) {
+        self.vibrator.pattern(on, off, repetitions).await;
     }
 
     async fn switch_to(&mut self, new_id: AppId) {

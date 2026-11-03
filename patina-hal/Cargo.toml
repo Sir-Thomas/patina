@@ -9,3 +9,4 @@ publish.workspace = true
 
 [dependencies]
 embedded-graphics = { workspace = true }
+embassy-time = { workspace = true }

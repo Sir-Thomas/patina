@@ -1,19 +1,18 @@
-use crate::app_framework::events::SystemEvent;
-use crate::app_framework::{AppContext, EventResponse};
-use crate::apps::{AppId, AppInstance};
-use crate::tasks;
-use crate::tasks::ble::ble_runner;
+use crate::{
+    app_framework::{AppContext, EventResponse, context::Command, events::SystemEvent},
+    apps::{AppId, AppInstance},
+    tasks::{self, ble::ble_runner},
+};
 use defmt::{debug, info};
 use embassy_executor::Spawner;
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-use embassy_sync::mutex::Mutex;
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
+use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
+use heapless::Vec;
 use nrf_sdc::mpsl::Flash;
-use pinetime_bsp::backlight::BacklightController;
-use pinetime_bsp::display::DisplayController;
-use pinetime_bsp::vibrator::Vibrator;
-use pinetime_bsp::{Accelerometer, PineTime};
+use patina_hal::{ScreenOrientation, display::Display};
+use pinetime_bsp::{Accelerometer, PineTime, backlight::BacklightController, vibrator::Vibrator};
 
-use crate::signals::{EVENT_QUEUE, REFRESH_TIMEOUT};
+use crate::signals::{CHANGE_DISPLAY_STATE, EVENT_QUEUE, FLIP_SCREEN, REFRESH_TIMEOUT};
 
 #[embassy_executor::task]
 pub async fn app_manager(spawner: Spawner, board: PineTime) {
@@ -53,33 +52,35 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     }
 }
 
-struct AppManager {
+struct AppManager<D> {
     app_id: AppId,
     context: AppContext,
     current_app: AppInstance,
+    display: D,
 }
 
-impl AppManager {
+impl<D: Display> AppManager<D> {
     fn new(
         accelerometer: Accelerometer,
         backlight: BacklightController,
-        display: DisplayController,
+        display: D,
         flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
         vibrator: Vibrator,
     ) -> Self {
         let app_id = AppId::Clock;
         Self {
             app_id,
-            context: AppContext::new(accelerometer, backlight, display, flash, vibrator),
+            context: AppContext::new(accelerometer, backlight, flash, vibrator),
             current_app: AppInstance::new(app_id),
+            display,
         }
     }
 
     async fn init(&mut self) {
-        self.context.clear_display().await;
-        self.context.turn_on_display().await;
+        self.clear_display().await;
+        self.turn_on_display().await;
         self.current_app.on_start(&mut self.context).await;
-        self.current_app.render(&mut self.context).await;
+        self.draw_screen().await;
     }
 
     async fn handle_event(&mut self, event: SystemEvent) {
@@ -90,9 +91,9 @@ impl AppManager {
                 self.current_app.on_stop(&mut self.context).await;
                 self.current_app = AppInstance::new(AppId::AlarmRing);
                 self.app_id = AppId::AlarmRing;
-                self.current_app.render(&mut self.context).await;
+                self.draw_screen().await;
                 if self.context.display_is_off() {
-                    self.context.turn_on_display().await;
+                    self.turn_on_display().await;
                     REFRESH_TIMEOUT.signal(());
                 }
                 self.current_app.on_start(&mut self.context).await;
@@ -112,9 +113,9 @@ impl AppManager {
         if self.context.display_is_off() {
             match event {
                 SystemEvent::ButtonPress | SystemEvent::Touch(_) => {
-                    self.context.turn_on_display().await;
+                    self.turn_on_display().await;
                     self.current_app.on_start(&mut self.context).await;
-                    self.current_app.render(&mut self.context).await;
+                    self.draw_screen().await;
                     REFRESH_TIMEOUT.signal(());
                 }
                 _ => {}
@@ -127,7 +128,7 @@ impl AppManager {
             SystemEvent::ScreenTimeout => {
                 self.switch_to(AppId::Clock).await;
                 self.current_app.on_stop(&mut self.context).await;
-                self.context.turn_off_display().await;
+                self.turn_off_display().await;
                 return;
             }
             SystemEvent::ButtonPress => {
@@ -145,12 +146,23 @@ impl AppManager {
                 self.close_current_app().await;
             }
             EventResponse::Rerender => {
-                self.current_app.render(&mut self.context).await;
+                self.draw_screen().await;
             }
             EventResponse::SwitchApp(new_id) => {
                 self.switch_to(new_id).await;
             }
             EventResponse::Ignore => {}
+        }
+
+        for command in self.context.commands.clone() {
+            self.run_command(command).await;
+        }
+        self.context.commands = Vec::new();
+    }
+
+    async fn run_command(&mut self, command: Command) {
+        match command {
+            Command::RotateScreen => self.rotate_screen().await,
         }
     }
 
@@ -159,16 +171,77 @@ impl AppManager {
         self.current_app = AppInstance::new(new_id);
         self.app_id = new_id;
         self.current_app.on_start(&mut self.context).await;
-        self.current_app.render(&mut self.context).await;
+        self.draw_screen().await;
     }
 
     async fn close_current_app(&mut self) {
         if self.app_id != AppId::Clock {
-            self.context.clear_display().await;
+            self.clear_display().await;
             self.switch_to(AppId::Clock).await;
         } else {
             self.current_app.on_stop(&mut self.context).await;
-            self.context.turn_off_display().await;
+            self.turn_off_display().await;
+        }
+    }
+
+    pub async fn turn_on_display(&mut self) {
+        info!("[Context] Turning on display");
+        CHANGE_DISPLAY_STATE.signal(true);
+        self.context.screen_on = true;
+        self.context.backlight.enable();
+        self.display.wake().await;
+    }
+
+    pub async fn turn_off_display(&mut self) {
+        info!("[Context] Turning off display");
+        CHANGE_DISPLAY_STATE.signal(false);
+        self.context.screen_on = false;
+        self.context.backlight.disable();
+        self.clear_display().await;
+        self.display.sleep().await;
+    }
+
+    pub async fn clear_display(&mut self) {
+        info!("[Context] Clearing display");
+        self.display.fill(Rgb565::BLACK).await;
+    }
+
+    /*
+    // TODO: Delete these if I still don't need them
+    pub async fn fill_display(&mut self, color: Rgb565) {
+        info!("[Context] Filling display with color");
+        self.display.fill(color).await;
+    }
+
+    pub async fn draw<T: Drawable<Color = Rgb565> + Dimensions>(
+        &mut self,
+        drawable: &T,
+        background: Rgb565,
+    ) {
+        self.display.draw(drawable, background).await;
+    }
+    */
+
+    pub async fn draw_screen(&mut self) {
+        self.current_app
+            .render(&mut self.context, &mut self.display)
+            .await;
+    }
+
+    pub async fn rotate_screen(&mut self) {
+        info!("[Context] Flipping screen");
+        FLIP_SCREEN.signal(());
+        match self.display.orientation() {
+            ScreenOrientation::Normal => {
+                self.display
+                    .set_orientation(ScreenOrientation::Flipped)
+                    .await
+            }
+            ScreenOrientation::Flipped => {
+                self.display
+                    .set_orientation(ScreenOrientation::Normal)
+                    .await
+            }
         }
     }
 }

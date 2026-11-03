@@ -1,6 +1,8 @@
 use crate::app_framework::prelude::*;
 use crate::define_apps;
 
+use patina_hal::display::Display;
+
 define_apps! {
     Accelerometer => accelerometer::AccelerometerApp,
     Alarm => alarm::AlarmApp,

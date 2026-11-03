@@ -30,6 +30,7 @@ lcd-async = { workspace = true }
 nrf-dfu-target = { version = "0.3.2", features = ["defmt"] }
 nrf-sdc = { workspace = true }
 panic-probe = { version = "1.0.0", features = ["defmt"] }
+patina-hal = { path = "../patina-hal" }
 pinetime-bsp = { path = "../pinetime-bsp", features = ["defmt"] }
 spi-memory-async = { workspace = true }
 static_cell = { workspace = true }

@@ -10,3 +10,4 @@
 * [ ] HR Sensor
 * [ ] Tilt-to-wake
 * [ ] Improve battery life
+* [ ] Remove context from render function (settings app is still using it)

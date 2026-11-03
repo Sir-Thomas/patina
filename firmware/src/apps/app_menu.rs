@@ -1,6 +1,7 @@
 use buoyant::{if_view, primitives::Size, view::prelude::*};
 use embedded_graphics::{mono_font::ascii::FONT_10X20, pixelcolor::Rgb565, prelude::RgbColor};
 use heapless::{String, format};
+use patina_hal::display::Display;
 use pinetime_bsp::touch::{TouchEvent, TouchGesture};
 
 use crate::{
@@ -93,7 +94,7 @@ impl WatchApp for AppMenuApp {
         }
     }
 
-    async fn render(&mut self, ctx: &mut AppContext) {
+    async fn render<D: Display>(&mut self, _ctx: &mut AppContext, display: &mut D) {
         let mut captures = ();
         let menu = VStack::new((
             self.draw_app(0),
@@ -103,6 +104,6 @@ impl WatchApp for AppMenuApp {
         ))
         .with_spacing(10);
         let view = menu.as_drawable(Size::new(240, 240), Rgb565::WHITE, &mut captures);
-        ctx.draw_screen(&view).await;
+        display.draw_screen(&view).await;
     }
 }

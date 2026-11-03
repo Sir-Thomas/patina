@@ -69,11 +69,11 @@ impl WatchApp for StopwatchApp {
         }
     }
 
-    async fn render(&mut self, ctx: &mut AppContext) {
+    async fn render<D: Display>(&mut self, _ctx: &mut AppContext, display: &mut D) {
         let mut captures = ();
         let screen = self.screen();
         let view = screen.as_drawable(Size::new(240, 240), Rgb565::BLACK, &mut captures);
-        ctx.draw_screen(&view).await;
+        display.draw_screen(&view).await;
     }
 }
 

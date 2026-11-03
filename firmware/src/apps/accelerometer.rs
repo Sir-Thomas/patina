@@ -2,6 +2,7 @@ use buoyant::view::prelude::*;
 use defmt::info;
 use embedded_graphics::mono_font::ascii::FONT_10X20;
 use heapless::{String, format};
+use patina_hal::display::Display;
 
 use crate::app_framework::prelude::*;
 
@@ -35,7 +36,7 @@ impl WatchApp for AccelerometerApp {
         }
     }
 
-    async fn render(&mut self, ctx: &mut AppContext) {
+    async fn render<D: Display>(&mut self, _ctx: &mut AppContext, display: &mut D) {
         let mut captures = ();
         let x_string: String<9> = format!("X: {}", self.x).unwrap();
         let y_string: String<9> = format!("Y: {}", self.y).unwrap();
@@ -49,6 +50,6 @@ impl WatchApp for AccelerometerApp {
         .foreground_color(Rgb565::WHITE)
         .padding(Edges::All, 10);
         let view = screen.as_drawable(Size::new(240, 240), Rgb565::BLACK, &mut captures);
-        ctx.draw_screen(&view).await;
+        display.draw_screen(&view).await;
     }
 }

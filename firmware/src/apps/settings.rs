@@ -8,6 +8,7 @@ use embedded_icon::{
     },
 };
 use heapless::{String, format};
+use patina_hal::display::Display;
 use pinetime_bsp::{
     BrightnessLevel,
     touch::{Point, TouchGesture},
@@ -89,7 +90,7 @@ impl WatchApp for SettingsApp {
         }
     }
 
-    async fn render(&mut self, ctx: &mut AppContext) {
+    async fn render<D: Display>(&mut self, ctx: &mut AppContext, display: &mut D) {
         ctx.set_brightness(self.settings.brightness);
         let mut captures = ();
         let screen = match_view!(self.screen, {
@@ -101,7 +102,7 @@ impl WatchApp for SettingsApp {
             SettingsScreen::Firmware => self.firmware_screen(ctx.firmware_is_validated(), ctx.battery().2, ctx.battery().0),
         });
         let view = screen.as_drawable(Size::new(240, 240), Rgb565::BLACK, &mut captures);
-        ctx.draw_screen(&view).await;
+        display.draw_screen(&view).await;
     }
 }
 
@@ -123,7 +124,7 @@ impl SettingsApp {
         } else if location.x > 120 && location.y > 120 {
             self.screen = SettingsScreen::Firmware;
         } else {
-            ctx.rotate_screen().await;
+            ctx.rotate_screen();
         }
         EventResponse::Rerender
     }

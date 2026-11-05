@@ -25,6 +25,7 @@ embassy-time = "0.5.1"
 embedded-graphics = { version = "0.8.2", features = ["defmt"] }
 embedded-hal-async = { version = "1.0.0", features = ["defmt-03"] }
 embedded-layout = "0.4.2"
+embedded-storage-async = "0.4.2"
 lcd-async = "0.1.3"
 nrf-sdc = { version = "0.4.0", default-features = false, features = ["defmt", "nrf52832", "peripheral"] }
 spi-memory-async = "0.2.0"

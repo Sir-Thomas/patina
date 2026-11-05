@@ -1,51 +1,43 @@
-use defmt::info;
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
-use embassy_sync::mutex::Mutex;
-use embassy_sync::watch::DynAnonReceiver;
-use embassy_time::{Delay, Duration};
-use nrf_sdc::mpsl::Flash;
-use patina_hal::{backlight::BrightnessLevel, vibrator::Vibrator};
-use pinetime_bsp::{Accelerometer, PowerMode};
+use embassy_time::Duration;
+use patina_hal::backlight::BrightnessLevel;
 use time::PlainDateTime;
 
 use crate::app_framework::prelude::*;
-use crate::signals::{ADJUST_TIME, BATTERY, CURRENT_TIME};
-
-const VALID_BIT_ADDRESS: u32 = 0x7BFE8;
-const VALID_BIT_VALUE: u32 = 1;
+use crate::signals::BATTERY;
 
 #[derive(Clone, Debug)]
 pub enum Command {
+    EnableAccelerometer(bool),
     RotateScreen,
     SetBrightness(BrightnessLevel),
+    ValidateFirmware,
     VibrationPattern(Duration, Duration, u8),
     VibrationShort,
 }
 
 pub struct AppContext {
-    accelerometer: Accelerometer,
+    pub accelerometer: Option<(i16, i16, i16)>,
     pub bluetooth_connected: bool,
     pub brightness: BrightnessLevel,
-    current_time_watcher: DynAnonReceiver<'static, PlainDateTime>,
-    flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
+    pub firmware_is_validated: bool,
     pub screen_on: bool,
+    pub time: PlainDateTime,
     pub commands: Vec<Command, 8>,
 }
 
 impl AppContext {
     pub fn new(
-        accelerometer: Accelerometer,
         brightness: BrightnessLevel,
-        flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
+        firmware_is_validated: bool,
+        time: PlainDateTime,
     ) -> Self {
-        let current_time_watcher = CURRENT_TIME.dyn_anon_receiver();
         Self {
-            accelerometer,
+            accelerometer: None,
             bluetooth_connected: false,
             brightness,
-            current_time_watcher,
-            flash,
+            firmware_is_validated,
             screen_on: true,
+            time,
             commands: Vec::new(),
         }
     }
@@ -54,36 +46,23 @@ impl AppContext {
         !self.screen_on
     }
 
-    pub fn time(&mut self) -> PlainDateTime {
-        let current_time = self
-            .current_time_watcher
-            .try_get()
-            .expect("There will always be a valid time in the watcher");
-        current_time
-    }
-    #[allow(dead_code)] // TODO: Decide whether to keep this
-    pub fn set_time(&mut self, new_time: PlainDateTime) {
-        ADJUST_TIME.signal(new_time);
+    pub fn acceleration(&mut self) -> (i16, i16, i16) {
+        if let Some(data) = self.accelerometer {
+            data
+        } else {
+            (0, 0, 0)
+        }
     }
 
-    pub async fn acceleration(&mut self) -> (i16, i16, i16) {
-        self.accelerometer.get_accel_data().await.unwrap()
-    }
-
-    // TODO: move this somewhere better
-    pub async fn initialize_accelerometer(&mut self) {
-        self.accelerometer.init(&mut Delay).await.unwrap();
-        self.accelerometer
-            .set_power_mode(PowerMode::Performance)
-            .await
+    pub fn accelerometer_start(&mut self) {
+        self.commands
+            .push(Command::EnableAccelerometer(true))
             .unwrap();
-        self.accelerometer.set_acc_conf().await.unwrap();
     }
 
-    pub async fn disable_accelerometer(&mut self) {
-        self.accelerometer
-            .set_power_mode(PowerMode::Off)
-            .await
+    pub async fn accelerometer_stop(&mut self) {
+        self.commands
+            .push(Command::EnableAccelerometer(false))
             .unwrap();
     }
 
@@ -111,29 +90,8 @@ impl AppContext {
         self.bluetooth_connected = connected;
     }
 
-    pub fn firmware_is_validated(&self) -> bool {
-        let value_ptr = VALID_BIT_ADDRESS as *const u32;
-        let value = unsafe { value_ptr.read_volatile() };
-        let valid = value == VALID_BIT_VALUE;
-        info!(
-            "[Context] Firmware Validation check at address {:#X}: value={:#X}, valid={}",
-            VALID_BIT_ADDRESS, value, valid
-        );
-        valid
-    }
-
-    pub async fn validate_firmware(&self) {
-        if !self.firmware_is_validated() {
-            let mut flash = self.flash.lock().await;
-            if let Err(e) = flash
-                .write(VALID_BIT_ADDRESS, &VALID_BIT_VALUE.to_le_bytes())
-                .await
-            {
-                defmt::warn!("Error validating firmware: {:?}", e);
-            }
-        } else {
-            info!("Firmware already validated");
-        }
+    pub fn validate_firmware(&mut self) {
+        self.commands.push(Command::ValidateFirmware).unwrap();
     }
 
     pub fn vibration_pattern(&mut self, on: Duration, off: Duration, repetitions: u8) {

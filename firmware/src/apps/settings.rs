@@ -68,9 +68,9 @@ impl WatchApp for SettingsApp {
                 } else if self.screen == SettingsScreen::Firmware {
                     if (touch_event.location.x >= 10 && touch_event.location.x <= 230)
                         && (touch_event.location.y >= 180 && touch_event.location.y <= 230)
-                        && !ctx.firmware_is_validated()
+                        && !ctx.firmware_is_validated
                     {
-                        ctx.validate_firmware().await;
+                        ctx.validate_firmware();
                         EventResponse::Rerender
                     } else {
                         self.screen = SettingsScreen::Main;
@@ -237,7 +237,7 @@ impl Settings {
     fn load(&mut self, ctx: &mut AppContext, set_brightness: bool) {
         self.battery_millivolts = ctx.battery().2;
         self.battery_percent = ctx.battery().0;
-        self.firmware_is_validated = ctx.firmware_is_validated();
+        self.firmware_is_validated = ctx.firmware_is_validated;
         if set_brightness {
             self.brightness = ctx.brightness;
         }

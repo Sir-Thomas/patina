@@ -14,6 +14,7 @@ embassy-time = { workspace = true }
 embedded-graphics = { workspace = true }
 embedded-hal-async = { workspace = true }
 embedded-layout = { workspace = true }
+embedded-storage-async = { workspace = true }
 lcd-async = { workspace = true }
 nrf-sdc = { workspace = true }
 patina-hal = { path = "../patina-hal" }

@@ -5,15 +5,28 @@ use crate::{
 };
 use defmt::{debug, info};
 use embassy_executor::Spawner;
-use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
+use embassy_sync::{
+    blocking_mutex::raw::{NoopRawMutex, ThreadModeRawMutex},
+    mutex::Mutex,
+    watch::AnonReceiver,
+};
 use embassy_time::Duration;
 use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
 use heapless::Vec;
 use nrf_sdc::mpsl::Flash;
-use patina_hal::{ScreenOrientation, backlight::Backlight, display::Display, vibrator::Vibrator};
-use pinetime_bsp::{Accelerometer, PineTime};
+use patina_hal::{
+    ScreenOrientation, accelerometer::Accelerometer, backlight::Backlight, display::Display,
+    vibrator::Vibrator,
+};
+use pinetime_bsp::PineTime;
+use time::PlainDateTime;
 
-use crate::signals::{CHANGE_DISPLAY_STATE, EVENT_QUEUE, FLIP_SCREEN, REFRESH_TIMEOUT};
+use crate::signals::{
+    CHANGE_DISPLAY_STATE, CURRENT_TIME, EVENT_QUEUE, FLIP_SCREEN, REFRESH_TIMEOUT,
+};
+
+const VALID_BIT_ADDRESS: u32 = 0x7BFE8;
+const VALID_BIT_VALUE: u32 = 1;
 
 #[embassy_executor::task]
 pub async fn app_manager(spawner: Spawner, board: PineTime) {
@@ -53,18 +66,21 @@ pub async fn app_manager(spawner: Spawner, board: PineTime) {
     }
 }
 
-struct AppManager<B, D, V> {
+struct AppManager<A, B, D, V> {
+    accelerometer: A,
     app_id: AppId,
     backlight: B,
     context: AppContext,
     current_app: AppInstance,
     display: D,
+    flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
+    time_watcher: AnonReceiver<'static, ThreadModeRawMutex, PlainDateTime, 0>,
     vibrator: V,
 }
 
-impl<B: Backlight, D: Display, V: Vibrator> AppManager<B, D, V> {
+impl<A: Accelerometer, B: Backlight, D: Display, V: Vibrator> AppManager<A, B, D, V> {
     fn new(
-        accelerometer: Accelerometer,
+        accelerometer: A,
         backlight: B,
         display: D,
         flash: &'static Mutex<NoopRawMutex, Flash<'static>>,
@@ -72,12 +88,17 @@ impl<B: Backlight, D: Display, V: Vibrator> AppManager<B, D, V> {
     ) -> Self {
         let app_id = AppId::Clock;
         let brightness = backlight.brightness();
+        let mut time_watcher = CURRENT_TIME.anon_receiver();
+        let time = time_watcher.try_get().unwrap_or(PlainDateTime::MIN);
         Self {
+            accelerometer,
             app_id,
             backlight,
-            context: AppContext::new(accelerometer, brightness, flash),
+            context: AppContext::new(brightness, firmware_is_validated(), time),
             current_app: AppInstance::new(app_id),
             display,
+            flash,
+            time_watcher,
             vibrator,
         }
     }
@@ -103,6 +124,7 @@ impl<B: Backlight, D: Display, V: Vibrator> AppManager<B, D, V> {
                     REFRESH_TIMEOUT.signal(());
                 }
                 self.current_app.on_start(&mut self.context).await;
+                return;
             }
             SystemEvent::BluetoothConnected => {
                 info!("[Bluetooth] Connected");
@@ -141,7 +163,9 @@ impl<B: Backlight, D: Display, V: Vibrator> AppManager<B, D, V> {
                 self.close_current_app().await;
                 return;
             }
-            SystemEvent::Tick => {}
+            SystemEvent::Tick => {
+                self.context.time = self.time_watcher.try_get().unwrap_or(PlainDateTime::MIN);
+            }
             _ => REFRESH_TIMEOUT.signal(()),
         }
 
@@ -166,11 +190,19 @@ impl<B: Backlight, D: Display, V: Vibrator> AppManager<B, D, V> {
     async fn run_commands(&mut self) {
         for command in self.context.commands.clone() {
             match command {
+                Command::EnableAccelerometer(enabled) => {
+                    if enabled {
+                        self.accelerometer.start().await;
+                    } else {
+                        self.accelerometer.stop().await;
+                    }
+                }
                 Command::RotateScreen => self.rotate_screen().await,
                 Command::SetBrightness(level) => {
                     self.backlight.set_brightness(level);
                     self.context.brightness = level;
                 }
+                Command::ValidateFirmware => self.validate_firmware().await,
                 Command::VibrationPattern(on, off, repetitions) => {
                     self.vibration_pattern(on, off, repetitions).await
                 }
@@ -178,6 +210,22 @@ impl<B: Backlight, D: Display, V: Vibrator> AppManager<B, D, V> {
             }
         }
         self.context.commands = Vec::new();
+    }
+
+    pub async fn validate_firmware(&mut self) {
+        if !firmware_is_validated() {
+            let mut flash = self.flash.lock().await;
+            if let Err(e) = flash
+                .write(VALID_BIT_ADDRESS, &VALID_BIT_VALUE.to_le_bytes())
+                .await
+            {
+                defmt::warn!("Error validating firmware: {:?}", e);
+            } else {
+                self.context.firmware_is_validated = true;
+            }
+        } else {
+            info!("Firmware already validated");
+        }
     }
 
     pub async fn short_vibration(&mut self) {
@@ -251,4 +299,15 @@ impl<B: Backlight, D: Display, V: Vibrator> AppManager<B, D, V> {
             }
         }
     }
+}
+
+fn firmware_is_validated() -> bool {
+    let value_ptr = VALID_BIT_ADDRESS as *const u32;
+    let value = unsafe { value_ptr.read_volatile() };
+    let result = value == VALID_BIT_VALUE;
+    info!(
+        "[Context] Firmware Validation check at address {:#X}: value={:#X}, valid={}",
+        VALID_BIT_ADDRESS, value, result
+    );
+    result
 }

@@ -97,7 +97,7 @@ impl WatchApp for ClockApp {
         self.update_date = true;
         self.update_hours_minutes = true;
         self.update_seconds = true;
-        self.current_time = ctx.time();
+        self.current_time = ctx.time;
         info!(
             "[Clock App] Current Time: {:04}-{:02}-{:02} {:02}:{:02}:{:02}",
             self.current_time.year(),
@@ -115,7 +115,7 @@ impl WatchApp for ClockApp {
         match event {
             SystemEvent::Tick => {
                 debug!("[Clock App] Handling Tick");
-                let current_time = ctx.time();
+                let current_time = ctx.time;
                 let (battery_level, battery_charging, _) = ctx.battery();
                 debug!(
                     "[Clock App] Current Time: {:02}:{:02}:{:02}",

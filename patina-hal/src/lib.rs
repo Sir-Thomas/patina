@@ -11,6 +11,7 @@ pub enum ScreenOrientation {
     Flipped,
 }
 
+pub mod accelerometer;
 pub mod backlight;
 pub mod display;
 pub mod vibrator;

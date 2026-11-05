@@ -62,7 +62,7 @@ impl WatchApp for BuoyantApp {
     }
 
     async fn on_start(&mut self, ctx: &mut AppContext) {
-        self.current_time = ctx.time();
+        self.current_time = ctx.time;
         (self.battery_level, self.battery_charging, _) = ctx.battery();
         self.bluetooth_connected = ctx.bluetooth_connected();
     }
@@ -74,7 +74,7 @@ impl WatchApp for BuoyantApp {
     async fn on_event(&mut self, event: SystemEvent, ctx: &mut AppContext) -> EventResponse {
         match event {
             SystemEvent::Tick => {
-                let current_time = ctx.time();
+                let current_time = ctx.time;
                 let (battery_level, battery_charging, _) = ctx.battery();
                 if current_time.second() != self.current_time.second()
                     || battery_level != self.battery_level

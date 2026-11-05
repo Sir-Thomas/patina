@@ -16,6 +16,7 @@ use nrf_sdc::mpsl::{self, MultiprotocolServiceLayer};
 use patina_hal::{ScreenOrientation, display::Display as _};
 use static_cell::StaticCell;
 
+use crate::accelerometer::AccelerometerController;
 use crate::backlight::BacklightController;
 use crate::battery::BatteryController;
 use crate::ble::{BleController, build_mpsl, build_sdc};
@@ -24,8 +25,6 @@ use crate::display::DisplayController;
 use crate::flash::FlashController;
 use crate::touch::TouchController;
 use crate::vibrator::VibratorController;
-
-pub type Accelerometer = BMA425<I2cDevice<'static, NoopRawMutex, Twim<'static>>, Input<'static>>;
 
 static I2C_BUFFER: StaticCell<[u8; 256]> = StaticCell::new();
 static I2C_BUS: StaticCell<Mutex<NoopRawMutex, Twim<'static>>> = StaticCell::new();
@@ -49,7 +48,7 @@ bind_interrupts!(
 /// Represents all the peripherals and pins available for the PineTime.
 pub struct PineTime {
     /// Accelerometer
-    pub accelerometer: Accelerometer,
+    pub accelerometer: AccelerometerController,
     /// Backlight
     pub backlight: BacklightController,
     /// Battery
@@ -103,7 +102,10 @@ impl PineTime {
         let sdc = build_sdc(sdc_peripherals, rng, mpsl).unwrap();
 
         Self {
-            accelerometer: BMA425::new(I2cDevice::new(&*i2c_bus), Input::new(p.P0_08, Pull::Down)),
+            accelerometer: AccelerometerController::new(
+                I2cDevice::new(&*i2c_bus),
+                Input::new(p.P0_08, Pull::Down),
+            ),
             battery: BatteryController::new(p.P0_31, p.SAADC, Irqs, p.P0_12),
             backlight: BacklightController::new(p.P0_14, p.P0_22, p.P0_23),
             bluetooth: BleController::new(&*mpsl, sdc),

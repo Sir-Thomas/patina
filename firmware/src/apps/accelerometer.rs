@@ -18,17 +18,17 @@ impl WatchApp for AccelerometerApp {
     }
 
     async fn on_start(&mut self, ctx: &mut AppContext) {
-        ctx.initialize_accelerometer().await;
+        ctx.accelerometer_start();
     }
 
     async fn on_stop(&mut self, ctx: &mut AppContext) {
-        ctx.disable_accelerometer().await;
+        ctx.accelerometer_stop();
     }
 
     async fn on_event(&mut self, event: SystemEvent, ctx: &mut AppContext) -> EventResponse {
         match event {
             SystemEvent::Tick => {
-                (self.x, self.y, self.z) = ctx.acceleration().await;
+                (self.x, self.y, self.z) = ctx.acceleration();
                 info!("x {}, y {}, z {}", self.x, self.y, self.z);
                 EventResponse::Rerender
             }

@@ -65,8 +65,8 @@ TIP: GadgetBridge allows us to add an unsupported device. Long-press `Patina` an
 | TODO
 
 | Battery Service | Battery Level
-| x | | x | 
-| TODO: replace dummy value and implement notifications
+| x | | x | x
+| Reports the current battery percentage
 
 | Secure DFU Service | DFU Control Point
 | | x | x | x

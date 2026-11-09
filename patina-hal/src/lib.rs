@@ -13,5 +13,6 @@ pub enum ScreenOrientation {
 
 pub mod accelerometer;
 pub mod backlight;
+pub mod button;
 pub mod display;
 pub mod vibrator;

@@ -1,30 +1,41 @@
 //! Button input handler
-use embassy_nrf::{Peri, gpio::{Input, Output}, peripherals::{P0_13, P0_15}};
+use embassy_nrf::{
+    Peri,
+    gpio::{Input, Output},
+    peripherals::{P0_13, P0_15},
+};
 use embassy_time::{Duration, Instant, Timer};
+use patina_hal::button::Button;
 
 /// Button
-pub struct Button {
+pub struct ButtonController {
     enable: Output<'static>,
     input: Input<'static>,
     polling_rate: Duration,
 }
 
-impl Button {
+impl ButtonController {
     /// Create a new button instance
     pub fn new(
         input_pin: Peri<'static, P0_15>,
         output_pin: Peri<'static, P0_13>,
         polling_rate: Duration,
     ) -> Self {
-        let enable = Output::new(output_pin, embassy_nrf::gpio::Level::Low, embassy_nrf::gpio::OutputDrive::Standard);
+        let enable = Output::new(
+            output_pin,
+            embassy_nrf::gpio::Level::Low,
+            embassy_nrf::gpio::OutputDrive::Standard,
+        );
         let input = Input::new(input_pin, embassy_nrf::gpio::Pull::Down);
-        Button {
+        Self {
             enable,
             input,
             polling_rate,
         }
     }
+}
 
+impl Button for ButtonController {
     /// Returns true if the button is pressed
     fn is_pressed(&mut self) -> bool {
         // We must enable the pin 4 times to get a stable reading
@@ -39,7 +50,7 @@ impl Button {
     }
 
     /// Waits until the button is pressed
-    pub async fn wait_for_press(&mut self) {
+    async fn wait_for_press(&mut self) {
         loop {
             Timer::after(self.polling_rate).await;
             if self.is_pressed() {
@@ -49,7 +60,7 @@ impl Button {
     }
 
     /// Waits until the button is released
-    pub async fn wait_for_release(&mut self) {
+    async fn wait_for_release(&mut self) {
         loop {
             Timer::after(self.polling_rate).await;
             if self.is_pressed() == false {
@@ -59,7 +70,7 @@ impl Button {
     }
 
     /// Returns duration of the next button press
-    pub async fn wait_for_press_duration(&mut self) -> Duration {
+    async fn wait_for_press_duration(&mut self) -> Duration {
         self.wait_for_press().await;
         let start = Instant::now();
         self.wait_for_release().await;

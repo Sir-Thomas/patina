@@ -20,7 +20,7 @@ use crate::accelerometer::AccelerometerController;
 use crate::backlight::BacklightController;
 use crate::battery::BatteryController;
 use crate::ble::{BleController, build_mpsl, build_sdc};
-use crate::button::Button;
+use crate::button::ButtonController;
 use crate::display::DisplayController;
 use crate::flash::FlashController;
 use crate::touch::TouchController;
@@ -56,7 +56,7 @@ pub struct PineTime {
     /// Bluetooth LE Controller
     pub bluetooth: BleController,
     /// Button
-    pub button: Button,
+    pub button: ButtonController,
     /// Display
     pub display: DisplayController,
     /// MPSL Flash
@@ -109,7 +109,7 @@ impl PineTime {
             battery: BatteryController::new(p.P0_31, p.SAADC, Irqs, p.P0_12),
             backlight: BacklightController::new(p.P0_14, p.P0_22, p.P0_23),
             bluetooth: BleController::new(&*mpsl, sdc),
-            button: Button::new(p.P0_15, p.P0_13, Duration::from_millis(100)),
+            button: ButtonController::new(p.P0_15, p.P0_13, Duration::from_millis(100)),
             display: DisplayController::new(
                 SpiDevice::new(
                     spi_bus,

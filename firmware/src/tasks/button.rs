@@ -1,13 +1,14 @@
 use defmt::info;
 use embassy_time::{Duration, WithTimeout};
-use pinetime_bsp::button::Button;
+use patina_hal::button::Button;
+use pinetime_bsp::button::ButtonController;
 
 use crate::{app_framework::SystemEvent, signals::EVENT_QUEUE};
 
 const HOLD_DURATION_FOR_SYSTEM_RESET: Duration = Duration::from_secs(5);
 
 #[embassy_executor::task]
-pub async fn button_task(mut button: Button) {
+pub async fn button_task(mut button: ButtonController) {
     loop {
         button.wait_for_press().await;
         EVENT_QUEUE.send(SystemEvent::ButtonPress).await;

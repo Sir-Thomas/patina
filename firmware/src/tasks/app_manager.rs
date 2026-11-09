@@ -140,7 +140,7 @@ impl<A: Accelerometer, B: Backlight, D: Display, V: Vibrator> AppManager<A, B, D
         // Event handling with display off
         if self.context.display_is_off() {
             match event {
-                SystemEvent::ButtonPress | SystemEvent::Touch(_) => {
+                SystemEvent::ButtonPress => {
                     self.turn_on_display().await;
                     self.current_app.on_start(&mut self.context).await;
                     self.draw_screen().await;

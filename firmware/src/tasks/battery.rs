@@ -1,5 +1,6 @@
 use embassy_futures::select::select;
 use embassy_time::Timer;
+use patina_hal::battery::Battery;
 use pinetime_bsp::battery::BatteryController;
 
 use crate::signals::BATTERY;

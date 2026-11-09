@@ -1,11 +1,10 @@
-//! Battery charge level and charging status
-// TODO: test this on actual hardware
 use embassy_nrf::{
     Peri,
     gpio::{Input, Pull},
     peripherals,
     saadc::{self, Saadc},
 };
+use patina_hal::battery::Battery;
 
 use crate::board::Irqs;
 
@@ -36,27 +35,29 @@ impl BatteryController {
             charge_pin: Input::new(charge_pin, Pull::Up),
         }
     }
+}
 
+impl Battery for BatteryController {
     /// Get approximate battery charge level (0-100%)
-    pub async fn charge_level(&mut self) -> u8 {
+    async fn charge_level(&mut self) -> u8 {
         let mv = self.millivolts().await;
         approximate_charge(mv)
     }
 
     /// Get battery voltage in millivolts
-    pub async fn millivolts(&mut self) -> u32 {
+    async fn millivolts(&mut self) -> u32 {
         let mut buf = [0i16; 1];
         self.adc.sample(&mut buf).await;
         buf[0] as u32 * (8 * 600) / 1024
     }
 
     /// Returns true if the battery is currently charging
-    pub fn is_charging(&self) -> bool {
+    fn is_charging(&self) -> bool {
         self.charge_pin.is_low()
     }
 
     /// Wait until the charging state changes and return the new state
-    pub async fn wait_for_charge_state_change(&mut self) -> bool {
+    async fn wait_for_charge_state_change(&mut self) -> bool {
         self.charge_pin.wait_for_any_edge().await;
         self.is_charging()
     }

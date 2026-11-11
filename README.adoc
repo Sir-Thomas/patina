@@ -2,6 +2,8 @@
 
 == A reliable, extensible Watch OS for the PineTime written in Rust
 
+image::docs/images/clock.jpg[Watch Face, width=300]
+
 == Goals
 
 === Learning

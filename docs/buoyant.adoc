@@ -8,38 +8,86 @@ endif::[]
 
 = Buoyant
 
-== Update - Buoyant works now!!
+== Summary
 
-Updating to buoyant 0.8.0-alpha.0 fixed my rendering issues.
-I am currently in the process of transitioning rendering to use buoyant fully.
-I will likely have to completely rework the input and events.
-Buoyant can handle events in some way, but I still need to figure out how best to integrate it into the firmware.
+I discovered the Buoyant crate, which simplifies embedded graphics rendering.
+Rather than explicitly define each shape with exact pixel values, Buoyant provides an interface more similar to SwiftUI or Jetpack Compose.
+This was immediately appealing to me.
+I hated all the work that went into arranging the one screen I made for the watch so far, and would not have continued to develop the project without a library to simplify things.
 
-I have left the following in for reference.
-Eventually, I'll type up a better explanation of the buoyant bug and what changed to fix it.
+Unfortunately, when I tried Buoyant, I discovered a bug that made it unusable in my code.
+When Buoyant renders to a target, it first checks if it needs to clip the image, and then renders to it.
+Previously, the framework only stored the size of the render target, and assumed the origin was (0, 0).
+This worked fine for most use cases, but for the RAM constrained PineTime, I had to render in multiple passes, so only the first one worked correctly.
 
-[NOTE]
-====
-I have a branch where I was testing out the buoyant crate. 
-It seems like a nice framework that would simplify a lot of layout and app development.
-It can create clean layouts with an interface inspired by SwiftUI, but within the constraints of a microcontroller.
-Unfortunately, it does not seem to work with our current display functions.
-Images and shapes will only display in the first framebuffer, but not any others.
+== PineTime Hardware Constraints
 
-If we can fix this bug, I would love to use Buoyant.
-I tried to test it with the non-async driver, but it still is not a great experience.
-We either have to clear the screen each frame, or put a background behind each element.
-The background is drawn separately from the elements, so there is still a noticeable flicker when the components update.
+The PineTime uses an nRF52832 with 64K of RAM.
+It also has a 240x240 screen that uses RGB565 color format.
 
-A new hardware revision of the PineTime could solve these issues if we get faster SPI or more RAM.
-If we can push pixels to the display fast enough, the flicker might be reduced to the point where it is no longer noticeable.
-Likewise, if we have enough RAM for a full framebuffer, we could draw to it and update the whole screen at one time.
+If you do the math, 240 pixels wide x 240 pixels tall x 2 bytes/pixel = 115,200.
+It would take almost twice as much RAM as we have to make a full framebuffer for the display.
+Since I can't use a full framebuffer, I use a 240x20 framebuffer which only takes 9.6K.
 
-If something changes, I will come back and re-implement buoyant, but until then, we will have to stick with raw embedded-graphics.
-====
+== The Issue
 
-== Todo
+When I started testing Buoyant, I ran into a strange issue.
+The images and shapes only rendered correctly on the first pass of the framebuffer.
 
-* [ ] Switch remaining apps to buoyant
-* [ ] Switch touch handling to buoyant
-* [ ] Rewrite Documentation
+|===
+| Expected Rendering | Actual Rendering
+a| image::images/quick_settings.jpg[Quick Settings, width=300] a| image::images/quick_settings_clipped.jpg[Clipped Quick Settings, width=300]
+|===
+
+I ran a few simple tests to verify this.
+I increased and decreased the framebuffer size and the portion of the screen that rendered correctly changed accordingly.
+
+I knew it was a bug in Buoyant because my rendering worked exactly as expected for plain embedded-graphics.
+
+== Workaround Attempt
+
+If the problem stems from Buoyant's interactions with framebuffers, one solution would be to get rid of the framebuffer.
+We can use the blocking display crate to render directly into the display and potentially bypass the issue.
+
+Unfortunately, when attempting this, I quickly ran into other constraints.
+Drawing to the display will not erase anything that is already there, so we need to explicitly draw backgrounds.
+We could either add the backgrounds to the Buoyant view, or send a clear command to the display.
+Either option splits the draw into two steps and since the nRF52832's SPI bus is limited to 8 Mbps, the display is slow enough to update that there is a very noticeable flicker.
+
+In the end, the framebuffer is needed so that multiple draws in a single frame do not cause flickering.
+
+== The Solution
+
+At this point, my best guess on the source of the issue was that Buoyant attempted to draw everything on the first pass, then on subsequent passes, assumed the shapes were already drawn and skipped them.
+I had to put the project on hold for a while, but when I came back, the first thing I did was check for updates to Buoyant.
+After updating to the latest commit and rebuilding, my bug was gone, so I began investigating to find out what changed.
+
+Commit 14ffaa9 was the only one that mentioned image rendering, so that was my first guess where to look.
+I quickly verified this by testing a build on that commit and the previous one.
+
+This commit changed the behavior of render targets.
+Now, they store their bounds as a rectangle with an origin that can be non-zero, rather than just a size.
+
+[source,rust]
+----
+-    fn size(&self) -> Size;
++    /// The region this surface permits drawing in.
++    ///
++    /// The origin is not necessarily zero.
++    fn bounding_box(&self) -> Rectangle;
++
++    /// The size of the region this surface permits drawing in.
++    fn size(&self) -> Size {
++        self.bounding_box().size
++    }
+----
+
+Buoyant had previously been using the same region, (0, 0, 240, 20), to clip each shape during rendering.
+This was correct only on the first pass of the framebuffer, all other draws had no overlap between the framebuffer and the region used for clipping, so the entire image was clipped.
+Now, Buoyant stores and then clips to the correct region, (0, y, 240, 20), on each pass of the partial framebuffer, rendering the image as expected.
+
+Rather than skipping the shapes like I guessed, Buoyant was simply clipping them wrong.
+This makes sense in hindsight and I can see how this slipped under the radar for so long.
+A project using embedded-graphics-simulator, a full framebuffer, or drawing directly to the display would all have no issues.
+Especially during development, there would be no reason to draw to a target with any origin other than (0, 0).
+It is only the specific use case of a partial framebuffer that reproduces the bug.

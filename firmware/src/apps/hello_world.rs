@@ -64,7 +64,7 @@ impl WatchApp for HelloWorldApp {
         // We need to tell it the size of the display, give it a background color, and pass in the
         // variable we made earlier
         let view = screen.as_drawable(Size::new(240, 240), Rgb565::BLACK, &mut captures);
-        // Finally, we can tell the context to draw this to the display
+        // Finally, we can draw this to the display
         display.draw_screen(&view).await;
     }
 }

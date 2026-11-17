@@ -1,11 +1,12 @@
-// TODO: update this for buoyant
 = Application Writing Guide
 :source-highlighter: highlight.js
 :source-language: rust
 
+This guide will walk you through creating a simple, Hello, World app that increments a counter each time the screen is tapped.
+
 == Start
 
-. Create your application in the `src/apps` directory.
+. Create your application in the `firmware/src/apps` directory.
 ** The file name should be written in **snake_case**: `hello_world.rs`
 . Import basic components
 +
@@ -24,10 +25,10 @@ pub struct HelloApp {
 }
 ----
 . Implement the required functions
-.. `new()` - Create a new instance of the App struct. Initializing variables as needed.
+.. `new()` - Create a new instance of the App struct, initializing variables as needed.
 +
 ----
-Impl WatchApp for HelloApp {
+impl WatchApp for HelloApp {
     fn new() -> Self {
         Self {
             count: 0,
@@ -79,30 +80,47 @@ async fn on_event(&mut self, event: SystemEvent, _ctx: &mut AppContext) -> Event
 .. `render()` - This function will draw the app to the screen. It is called when the app is started and whenever the OS receives a `Rerender` event response.
 +
 ----
-async fn render(&mut self, ctx: &mut AppContext) {
-    // create a bounding box the size of the screen
-    let bounds = Rectangle::new(Point::zero(), Size::(240, 240));
-    // set up our text style
-    let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-    // write our string
-    let mut string = String::<32>::new();
-    write!(string, "Hello, World!\nCount: {}", self.count).unwrap();
-    // create our text box
-    let text = TextBox::new(string.as_str(), bounds, style);
-    // draw the text to the screen
-    ctx.draw(&text, Rgb565::BLACK).await;
+async fn render<D: Display>(&mut self, _ctx: &mut AppContext, display: &mut D) {
+    // This is just something that Buoyant needs
+    let mut captures = ();
+    // We can put our count variable into a string to display
+    let count_string: String<10> = format!("Count: {}", self.count).unwrap();
+    // Build out our screen with buoyant components
+    // A VStack allows us to put multiple elements on top of each other
+    let screen = VStack::new((
+        // We pass in our first line
+        Text::new("Hello, World!", &FONT_10X20),
+        // For our second line, we will use the string we made earlier
+        Text::new(count_string, &FONT_10X20),
+    ))
+    // Align the text to the left of the display
+    .with_alignment(HorizontalAlignment::Leading)
+    // Make the text white
+    .foreground_color(Rgb565::WHITE)
+    // Put 10 pixels of padding around the edges
+    .padding(Edges::All, 10);
+    // Now we render the buoyant view into something embedded_graphics can display
+    // We need to tell it the size of the display, give it a background color, and pass in the
+    // variable we made earlier
+    let view = screen.as_drawable(Size::new(240, 240), Rgb565::BLACK, &mut captures);
+    // Finally, we can draw this to the display
+    display.draw_screen(&view).await;
 }
 ----
-. Finally, we add the app to xref:../src/apps/mod.rs[mod.rs] to compile it into the firmware.
+. Finally, we add the app to xref:../firmware/src/apps/mod.rs[mod.rs] so it will be compiled it into the firmware.
 +
 ----
 define_apps! {
-    Clock => clock::ClockApp,
+    Accelerometer => accelerometer::AccelerometerApp,
     Alarm => alarm::AlarmApp,
-    Flashlight => flashlight::FlashlightApp,
-//  App ID | File Name  | Struct Name
-    Hello => hello_world::HelloApp,
-    Stopwatch => stopwatch::StopwatchApp,
+    AlarmRing => alarm_ring::AlarmRing,
+    AppMenu => app_menu::AppMenuApp,
+    Buoyant => buoyant::BuoyantApp,
+    Clock => clock::ClockApp,
+//  App ID      | File Name  | Struct Name
+    HelloWorld => hello_world::HelloWorldApp,
     Settings => settings::SettingsApp,
+    Stopwatch => stopwatch::StopwatchApp,
 }
 ----
+. Your app is now complete. Check out the xref:./flashing.adoc[flashing guide] to compile and run your app on real hardware.
